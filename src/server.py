@@ -23,15 +23,19 @@ __copyright__ = "Copyright (C) 2014 Migrate2Iaas"
 
 import logging
 import time
+import datetime
 from BaseHTTPServer import BaseHTTPRequestHandler
 import requests
 from lxml import etree
+import shortuuid
 import cgi
 import threading
 import psutil # for detecting disk usage
 import os
 import subprocess
 
+# need to log to a file as well
+# See Logging Cookbook to set this up
 logging.basicConfig(level=logging.DEBUG,
                     format='(%(threadName)-10s) %(message)s',)
 
@@ -48,8 +52,9 @@ class Service(object):
                          'ReadyToTransfer',
                          'FinishedTransfer',
                          'FinishedConversion']
-        self.Status = 'NotConfigured'
+        self.status = 'NotConfigured'
                          
+
         self.Log = []
 
     def configure_import(self):
@@ -57,16 +62,35 @@ class Service(object):
 
         logging.debug('Do the work of configuration')
 
+        self.status = 'Initializing'
+
         # how to return an error??
 
         # is there anything else to do to configure?
-        for i in range(1):
-            logging.info('Working ...')
-            time.sleep(1)
+        #   move the body of ConfigureImport here?
+
+        uuid = shortuuid.uuid()
+        self.conversionTaskId = 'import-' + uuid
+
+        # now + 1day
+        now = datetime.datetime.utcnow()
+        self.expirationTime = now + datetime.timedelta(days = 1)
+
+        self.bytesConverted = 0
+
+        self.availability = '' # e.g. us-east
+        self.description = 'cloudscraper'
+
+        #  these should be updated by ImportInstance/ImportVolume
+        self.format = '' # e.g. VMDK
+        self.size = 0
+        self.importManifestUrl = ''
+        self.volume_size = 0
+
+        self.status = 'ReadyToTransfer'
 
         # done
         logging.debug('ConfigureImport complete')
-        self.Status = 'ReadyToTransfer'
 
     def ConfigureImport(self, 
                         SameDriveMode=None, 
@@ -80,7 +104,7 @@ class Service(object):
         code = 500 # Server Error
         Errors = etree.SubElement(response, 'Errors')
 
-        if self.Status <> 'NotConfigured':
+        if self.status <> 'NotConfigured':
             logging.error('AlreadyConfigured')
 
             error = "AlreadyConfigured"
@@ -142,7 +166,6 @@ class Service(object):
         </Response>
         """
 
-        self.Status = 'Initializing'
 
         # launch thread to go initialize the import
         worker = threading.Thread(target=self.configure_import,
@@ -162,8 +185,8 @@ class Service(object):
         logging.debug('GetImportTargetStatus called')
 
         response = etree.Element("ImportTargetStatus")
-        Status = etree.SubElement(response, 'Status')
-        Status.text = self.Status
+        status = etree.SubElement(response, 'Status')
+        status.text = self.status
 
         StatusMessage = etree.SubElement(response, 'StatusMessage')
         StatusMessage.text = ''
@@ -234,7 +257,10 @@ class Service(object):
         """
         logging.debug('ImportVolume called')
 
-        # put something on a queue for processing
+        # launch thread to go import volume
+        worker = threading.Thread(target=self.handle_import,
+                                  args=())
+        worker.start()
 
         response = etree.Element('Response')
 
@@ -247,35 +273,49 @@ class Service(object):
         See:
         http://docs.aws.amazon.com/AWSEC2/latest/APIReference/ApiReference-query-DescribeConversionTasks.html 
         """
-        response = etree.Element('DescribeConversionTasksResponse')
-        conversionTasks = etree.SubElement(response, 'conversionTasks')
-        
-        # loop?
-        item = etree.SubElement(conversionTasks, 'item')
-        conversionTaskId = etree.SubElement(item, 'conversionTaskId')
-        conversionTaskId = 'import-vol-ffhnobo8'
-        expriationTime = etree.SubElement(item, 'expriationTime')
-        expriationTime = '2014-08-11T10:16:50Z'
-        importVolume = etree.SubElement(item, 'importVolume')
 
-        """
-            <bytesConverted>0</bytesConverted>
-                    <availabilityZone>us-east-1a</availabilityZone>
-                    <description>cloudscraper2014-08-04</description>
-                    <image>
-                        <format>VMDK</format>
-                        <size>292352</size>
-                        <importManifestUrl>https://cloudscraper-1407147346-us-east-1.s3.amazonaws.com/12312RCF2-Jmanifest.xml?Signature=ViK6rfYTLfghuip0u0IQ5bdmNLg%3D&amp;Expires=1408443410&amp;AWSAccessKeyId=AKIAIY2X62QVIHOPEFEQ</importManifestUrl>
-                    </image>
-                    <volume>
-                        <size>1</size>
-                    </volume>
-        """
-         
-        state = etree.SubElement(item, 'state')
-        state.text = 'active'
-        statusMessage = etree.SubElement(item, 'statusMessage')
-        statusMessage.text = 'Pending'
+        response = etree.Element('DescribeConversionTasksResponse')
+
+        # only valid if ...
+        if self.status in ['ReadyToTransfer', 'FinishedTransfer']:
+            conversionTasks = etree.SubElement(response, 'conversionTasks')
+            
+            item = etree.SubElement(conversionTasks, 'item')
+            conversionTaskId = etree.SubElement(item, 'conversionTaskId')
+            conversionTaskId.text = self.conversionTaskId
+            expirationTime = etree.SubElement(item, 'expirationTime')
+            expirationTime.text = self.expirationTime.strftime('%Y-%m-%dT%H:%M:%SZ')
+            importVolume = etree.SubElement(item, 'importVolume')
+            importVolume.text = ''
+
+            bytesConverted = etree.SubElement(item, 'bytesConverted')
+            bytesConverted.text = str(self.bytesConverted)
+
+            availability = etree.SubElement(item, 'availability')
+            availability.text = self.availability
+
+            description = etree.SubElement(item, 'description')
+            description.text = self.description
+
+            image = etree.SubElement(item, 'image')
+            format = etree.SubElement(image, 'format')
+            format.text = self.format
+
+            size = etree.SubElement(image, 'size')
+            size.text = str(self.size)
+
+            importManifestUrl = etree.SubElement(image, 'importManifest')
+            importManifestUrl.text = self.importManifestUrl
+
+            volume = etree.SubElement(item, 'volume')
+            size = etree.SubElement(volume, 'size')
+            size.text = str(self.volume_size)
+
+            state = etree.SubElement(item, 'state')
+            state.text = self.status
+
+            statusMessage = etree.SubElement(item, 'statusMessage')
+            statusMessage.text = 'Pending'
 
         logging.debug('DescribeConversionTasks called')
 
@@ -299,6 +339,9 @@ class Service(object):
         """
         
         logging.debug('FinalizeConversion called')
+
+        # should probably throw an error if the conversion is still
+        # in progress
 
         # When FinalizeConversion is requested
         self.Status = 'FinishedTransfer'
@@ -359,9 +402,10 @@ class Service(object):
 
         # Size is ??
         size = import_.find('size').text
-        # Volume is in GB?
 
+        # Volume is in GB
         volume_size = import_.find('volume-size').text
+
         # number of parts
         parts = import_.find('parts')
         count = parts.get('count')
@@ -420,7 +464,6 @@ class Service(object):
             """
             Every image part should be read and then written to 
             an appropriate volume. 
-
             """
 
             # 2.3 For every part download it into memory and write 
@@ -429,14 +472,13 @@ class Service(object):
             r = requests.get(get_url)
             logging.debug('Downloaded %d bytes' % len(r.content))
 
-            # save it...
+            # write to appropriate volume
             disk.write(r.content)
 
         # Every part of conversion task should be logged, 
         # the current step and its status should be accessible via 
         # DescribeConversionTasks command.
         disk.close()
-
 
 service = Service()
 
