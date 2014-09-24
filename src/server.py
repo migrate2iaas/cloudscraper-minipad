@@ -27,6 +27,7 @@ import datetime
 from BaseHTTPServer import BaseHTTPRequestHandler
 import requests
 from lxml import etree
+import traceback
 import shortuuid
 import cgi
 import threading
@@ -500,16 +501,25 @@ class Handler(BaseHTTPRequestHandler):
 
         # Depending on Action, call method
         # test for Action? # 'Action' in form?
-        action = form['Action'].value
-        parms = dict( [(key, form[key].value) for key in form] )
+        try:
+            action = form['Action'].value
+            parms = dict( [(key, form[key].value) for key in form] )
 
-        # test for Action? hasattr?
-        action_call = getattr(service, action)
+            action_call = getattr(service, action)
 
-        code, response = action_call(**parms)
+            code, response = action_call(**parms)
+        except:
+            # handle exceptions here...
 
-        # or throw exception?
-        # handle stack trace here...
+            code = 500 # Internal Server Error
+            response = etree.Element('Response')
+
+            Errors = etree.SubElement(response, 'Errors')
+            Error = etree.SubElement(Errors, 'Error')
+
+            StackTrace = etree.SubElement(Error, 'StackTrace')
+            StackTrace.text =  traceback.format_exc()
+        
 
         """
         6. Appendix: Error response samples
@@ -552,9 +562,6 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(xml)
 
 """
-    # PYMOTW cglt or something -- just after/after BaseHTTPServer
-    # might have this funcationality
-
     Errors should contain code, description and error stack trace if any (see appendix below)
      Calls are coming sequentially. No task queues needed. 
      The verb is 'POST'

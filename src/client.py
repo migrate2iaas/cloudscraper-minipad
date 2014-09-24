@@ -14,6 +14,10 @@ def post(payload):
     e = etree.fromstring(r.content)
     print etree.tostring(e, pretty_print=True)
 
+## Call a non-existant Action
+payload = {'Action' : 'FakeAction'}
+post(payload)
+
 ## Configure Import ####
 payload = {'Action' : 'ConfigureImport',
            'SameDriveMode' : 'True',
@@ -43,7 +47,10 @@ while True:
     post(payload)
 
     # wait for 5 seconds
-    time.sleep(5)
+    delay = 5
+    print "Waiting %d seconds..." % delay
+    print
+    time.sleep(delay)
 
     # if import complete, break
     if done:
