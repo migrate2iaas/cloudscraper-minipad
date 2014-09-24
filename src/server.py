@@ -21,49 +21,6 @@ __author__ = "James Munroe"
 __copyright__ = "Copyright (C) 2014 Migrate2Iaas"
 # --------------------------------------------------------
 
-sample_manifest =  """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<manifest>
-    <version>2010-11-15</version>
-    <file-format>VHD</file-format>
-    <importer>
-        <name>ec2-upload-disk-image</name>
-        <version>1.0.0</version>
-        <release>2010-11-15</release>
-    </importer>
-    <self-destruct-url>https://feoff3vm.s3.amazonaws.com/testmanifest.xml?AWSAccessKeyId=AKIAIY2X62QVIHOPEFEQ&amp;Expires=1362428650&amp;Signature=zdgn78E99Wuhi%2FZF%2F99jjwcBOF0%3D</self-destruct-url>
-    <import>
-        <size>1765801984</size>
-        <volume-size>20</volume-size>
-        <parts count="169">
-            <part index="0">
-                <byte-range end="10485759" start="0"/>
-                <key>test.part100500</key>
-                <head-url>https://feoff3vm.s3.amazonaws.com/test.part0?AWSAccessKeyId=AKIAIY2X62QVIHOPEFEQ&amp;Expires=1362428650&amp;Signature=RwwzYCXjREZiUbDnuZqQreY%2B2Jc%3D</head-url>
-                <get-url>https://feoff3vm.s3.amazonaws.com/test.part0?AWSAccessKeyId=AKIAIY2X62QVIHOPEFEQ&amp;Expires=1362428650&amp;Signature=Gjh0vtUBjN%2FNOAYTfqqTPyBN4kE%3D</get-url>
-                <delete-url>https://feoff3vm.s3.amazonaws.com/test.part0?AWSAccessKeyId=AKIAIY2X62QVIHOPEFEQ&amp;Expires=1362428650&amp;Signature=Q03co7PVLjlNTqirk6cz7C1k5ps%3D</delete-url>
-            </part>
-
-<!--cut to reduce the space-->
-
-            <part index="167">
-                <byte-range end="1761607679" start="1751121920"/>
-                <key>test.part167</key>
-                <head-url>https://feoff3vm.s3.amazonaws.com/test.part167?AWSAccessKeyId=AKIAIY2X62QVIHOPEFEQ&amp;Expires=1362428650&amp;Signature=NDJm1eXefw00YmHGio9AFP9M5h0%3D</head-url>
-                <get-url>https://feoff3vm.s3.amazonaws.com/test.part167?AWSAccessKeyId=AKIAIY2X62QVIHOPEFEQ&amp;Expires=1362428650&amp;Signature=GZizd7Oiff2bmHo3Jeq74truSp0%3D</get-url>
-                <delete-url>https://feoff3vm.s3.amazonaws.com/test.part167?AWSAccessKeyId=AKIAIY2X62QVIHOPEFEQ&amp;Expires=1362428650&amp;Signature=ietgYBHS05F7J66V1zOS%2BCHEB%2Bo%3D</delete-url>
-            </part>
-            <part index="168">
-                <byte-range end="1765801983" start="1761607680"/>
-                <key>test.part168</key>
-                <head-url>https://feoff3vm.s3.amazonaws.com/test.part168?AWSAccessKeyId=AKIAIY2X62QVIHOPEFEQ&amp;Expires=1362428650&amp;Signature=tqW%2FTkpE7UvS%2FbXx5fZmUf%2B2tLw%3D</head-url>
-                <get-url>https://feoff3vm.s3.amazonaws.com/test.part168?AWSAccessKeyId=AKIAIY2X62QVIHOPEFEQ&amp;Expires=1362428650&amp;Signature=pzt8Zndp5zJ2ZYyujx7sgIe%2FvQo%3D</get-url>
-                <delete-url>https://feoff3vm.s3.amazonaws.com/test.part168?AWSAccessKeyId=AKIAIY2X62QVIHOPEFEQ&amp;Expires=1362428650&amp;Signature=l28q3mQwhq3RLnFEf2CvG0eFU6Y%3D</delete-url>
-            </part>
-        </parts>
-    </import>
-</manifest>
-"""
-
 import logging
 import time
 from BaseHTTPServer import BaseHTTPRequestHandler
@@ -71,6 +28,9 @@ import requests
 from lxml import etree
 import cgi
 import threading
+import psutil # for detecting disk usage
+import os
+import subprocess
 
 logging.basicConfig(level=logging.DEBUG,
                     format='(%(threadName)-10s) %(message)s',)
@@ -97,10 +57,10 @@ class Service(object):
 
         logging.debug('Do the work of configuration')
 
-        # how do I return a error??
+        # how to return an error??
 
-        # do some work
-        for i in range(5):
+        # is there anything else to do to configure?
+        for i in range(1):
             logging.info('Working ...')
             time.sleep(1)
 
@@ -394,32 +354,58 @@ class Service(object):
         r = requests.get(url)
         xml = r.content
 
-        # for testing::
-        xml = sample_manifest        
-
         manifest = etree.fromstring(xml)
         import_ = manifest.find('import')
+
+        # Size is ??
         size = import_.find('size').text
+        # Volume is in GB?
+
         volume_size = import_.find('volume-size').text
+        # number of parts
         parts = import_.find('parts')
         count = parts.get('count')
 
         # 2.2 Find a disk/volume in the system
-        # get list of all disks/volumes on system
-        # os.
 
         #2.2.1 If SameDriveMode was passed in ConfigureImport request, 
         # and ImportInstance command is being processed, partition the 
         # free space on the system drive
         if self.SameDriveMode and self.ImportType == 'ImportInstance':
             # partition free space on system drive
-            pass
+
+            # Use GNU parted to resize partition?
+            # Use GNU parted to partion free space
+
+            # Python binding to libparted are part of pyparted
+
+            mountpoint = 'devsda'
+
         else:
+            # get list of all disks/volumes on system
             # find an appropriate free disk 
             # (criteria - size should be equal to "volume-size" in 
             # GBs set in the manifest) in the system. Note, disks are
             # added into the system dynamically.
-            pass
+
+            print "volume", volume_size
+            print "size", size
+            for partition in psutil.disk_partitions(all=False):
+                usage = psutil.disk_usage(partition.mountpoint)
+                
+                print partition.mountpoint, usage.free
+                # partition.mountpoint
+                # partition.device
+                # part.fstype
+                # usage.total
+                # usage.used
+                # usage.free
+
+            # could also use pyparted?
+
+            mountpoint = 'devsda'
+
+        disk = open(mountpoint, 'wb')
 
         for part in parts.findall('part'):
             index = int(part.get('index'))
@@ -441,14 +427,15 @@ class Service(object):
             # to the found disk device (e.g. /dev/sdb)
 
             r = requests.get(get_url)
-            print r.raw
+            logging.debug('Downloaded %d bytes' % len(r.content))
 
             # save it...
-            time.sleep(1)
-        
+            disk.write(r.content)
+
         # Every part of conversion task should be logged, 
         # the current step and its status should be accessible via 
         # DescribeConversionTasks command.
+        disk.close()
 
 
 service = Service()

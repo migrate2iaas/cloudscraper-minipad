@@ -17,7 +17,7 @@ print r.text
 payload = {'Action' : 'ImportInstance',
            'Image.Format' : 'VMDK',
            'Image.ImportManifestUrl' :
-           'https://cloudscraper-1407147346-us-east-1.s3.amazonaws.com/12312RCF2-Jmanifest.xml'
+           'http://54.165.199.59/gumbo-disk1.vmdkmanifest.xml'
           }
 r = requests.post(url, data = payload)
 print r.text
