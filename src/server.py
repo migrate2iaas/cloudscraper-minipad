@@ -1,3 +1,4 @@
+#!/usr/bin/python
 """
 MiniPadTarget
 ~~~~~~~~~~~~~
@@ -416,7 +417,10 @@ class Service(object):
         #2.2.1 If SameDriveMode was passed in ConfigureImport request, 
         # and ImportInstance command is being processed, partition the 
         # free space on the system drive
+
         if self.SameDriveMode and self.ImportType == 'ImportInstance':
+	    # what drive is the root system on?
+
             # partition free space on system drive
 
             # Use GNU parted to resize partition?
@@ -470,11 +474,11 @@ class Service(object):
             # 2.3 For every part download it into memory and write 
             # to the found disk device (e.g. /dev/sdb)
 
-            r = requests.get(get_url)
-            logging.debug('Downloaded %d bytes' % len(r.content))
+            #r = requests.get(get_url)
+            #logging.debug('Downloaded %d bytes' % len(r.content))
 
             # write to appropriate volume
-            disk.write(r.content)
+            #disk.write(r.content)
 
         # Every part of conversion task should be logged, 
         # the current step and its status should be accessible via 
@@ -486,6 +490,9 @@ service = Service()
 class Handler(BaseHTTPRequestHandler):
     """Call method of Service() based on Action field in POST"""
     
+    def do_GET(self):
+	logging.debug('unsupported GET recieved')
+
     def do_POST(self):
         # Parse the form data posted
         form = cgi.FieldStorage(
@@ -571,7 +578,7 @@ class Handler(BaseHTTPRequestHandler):
 def main():
 
     from BaseHTTPServer import HTTPServer
-    server = HTTPServer(('localhost', 8080), Handler)
+    server = HTTPServer(('0.0.0.0', 80), Handler)
     print 'Starting server, use <Ctrl-C> to stop'
     server.serve_forever()
 
