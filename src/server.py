@@ -87,7 +87,7 @@ class Service(object):
         self.format = '' # e.g. VMDK
         self.size = 0
         self.importManifestUrl = ''
-        self.volume_size = 0
+        self.volumeSize = 0
 
         self.status = 'ReadyToTransfer'
 
@@ -311,7 +311,7 @@ class Service(object):
 
             volume = etree.SubElement(item, 'volume')
             size = etree.SubElement(volume, 'size')
-            size.text = str(self.volume_size)
+            size.text = str(self.volumeSize)
 
             state = etree.SubElement(item, 'state')
             state.text = self.status
@@ -406,7 +406,7 @@ class Service(object):
         size = import_.find('size').text
 
         # Volume is in GB
-        volume_size = import_.find('volume-size').text
+        self.volumeSize = import_.find('volume-size').text
 
         # number of parts
         parts = import_.find('parts')
@@ -414,47 +414,13 @@ class Service(object):
 
         # 2.2 Find a disk/volume in the system
 
-        #2.2.1 If SameDriveMode was passed in ConfigureImport request, 
-        # and ImportInstance command is being processed, partition the 
-        # free space on the system drive
+        device = self.GetVolume()
 
-        if self.SameDriveMode and self.ImportType == 'ImportInstance':
-	    # what drive is the root system on?
+        if device == '':
+            # no device found
+            return
 
-            # partition free space on system drive
-
-            # Use GNU parted to resize partition?
-            # Use GNU parted to partion free space
-
-            # Python binding to libparted are part of pyparted
-
-            mountpoint = 'devsda'
-
-        else:
-            # get list of all disks/volumes on system
-            # find an appropriate free disk 
-            # (criteria - size should be equal to "volume-size" in 
-            # GBs set in the manifest) in the system. Note, disks are
-            # added into the system dynamically.
-
-            print "volume", volume_size
-            print "size", size
-            for partition in psutil.disk_partitions(all=False):
-                usage = psutil.disk_usage(partition.mountpoint)
-                
-                print partition.mountpoint, usage.free
-                # partition.mountpoint
-                # partition.device
-                # part.fstype
-                # usage.total
-                # usage.used
-                # usage.free
-
-            # could also use pyparted?
-
-            mountpoint = 'devsda'
-
-        disk = open(mountpoint, 'wb')
+        handle = open(device, 'wb')
 
         for part in parts.findall('part'):
             index = int(part.get('index'))
@@ -478,12 +444,213 @@ class Service(object):
             #logging.debug('Downloaded %d bytes' % len(r.content))
 
             # write to appropriate volume
-            #disk.write(r.content)
+            handle.write(r.content)
 
         # Every part of conversion task should be logged, 
         # the current step and its status should be accessible via 
         # DescribeConversionTasks command.
-        disk.close()
+        handle.close()
+
+    def GetVolume(self):
+        """
+        Find a block device with sufficient free space and
+        create a new partition
+
+        The command line program 'parted' is used to
+        do most of the heavy lifting here
+        """
+
+        #2.2.1 If SameDriveMode was passed in ConfigureImport request, 
+        # and ImportInstance command is being processed, partition the 
+        # free space on the system drive
+
+        if self.SameDriveMode and self.ImportType == 'ImportInstance':
+	    # what drive is the root system on?
+
+            # partition free space on system drive
+
+            pass
+        else:
+            # get list of all disks/volumes on system
+            # find an appropriate free disk 
+            # (criteria - size should be equal to "volume-size" in 
+            # GBs set in the manifest) in the system. Note, disks are
+            # added into the system dynamically.
+
+            pass
+
+
+        # TODO: log parted subprocess calls
+
+        # get a list of all the possible block devices to consider
+        # on this system
+        parted_list = subprocess.check_output(['parted', '-sml'])
+        # parted returns output stanzas of the form:
+        """
+        BYT;
+        /dev/sda:3221MB:scsi:512:512:msdos:ATA VBOX HARDDISK;
+        1:1049kB:256MB:255MB:ext2::boot;
+        2:257MB:3220MB:2963MB:::;
+        5:257MB:3220MB:2963MB:::lvm;
+        """
+
+        block_devices = []
+        block = {}
+        for line in parted_list.split(';'):
+            line = line.strip()
+            if line == 'BYT':
+                if len(block) > 0:
+                    block_devices.append(block)
+                    # new block device
+                    block = {}
+            elif len(block) == 0:
+                # first line after BYT;
+                device, size, device_type, block_size, _, part_type, flag = line.split(':')
+                block['device'] = device
+                block['size'] = size
+                block['device_type'] = device_type
+                block['block_size'] = block_size
+                block['part_type'] = part_type
+                block['flag'] = flag
+
+                block['partitions'] = []
+            elif line == '':
+                pass
+            else:
+                # partition information
+                part_number, start, stop, part_size, fs_type, _, flag = line.split(':')
+                partition = {'part_number' : part_number,
+                             'start' : start,
+                             'stop' : stop,
+                             'part_size' : part_size,
+                             'fs_type' : fs_type,
+                             'flag' : flag }
+                block['partitions'].append(partition)
+
+        if len(block) > 0:
+            block_devices.append(block)
+
+        # As well, let's get a list of paritions with their mountpoints
+        # we are searching for the system drive
+        system_drive = ''
+        for partition in psutil.disk_partitions(all=True):
+            usage = psutil.disk_usage(partition.mountpoint)
+
+            # detect system drive by search for the partition mounted as /boot
+            if partition.mountpoint == '/boot':
+                system_drive = partition.device[:-1]
+
+
+        if system_drive == '':
+            # if system_drive can not be determined
+            logging.warning('system drive cannot be determined')
+        else:
+            logging.debug('system drive is %s' % system_drive)
+
+        # sentinal to detect when a suitable free space has been found
+        region = {}
+
+        # what are all of the free regions on each block device?
+        for block in block_devices:
+            
+            if len(region) > 0:
+                # we've already found a suitable free region
+                break
+
+            # if system_drive, only look there
+            if self.SameDriveMode:
+                if block['device'] <> system_drive:
+                    continue
+
+            # find all of the free regions on this block device:
+            response = subprocess.check_output(['parted', 
+                '-sm', block['device'],
+                'unit', 'MB',
+                'print', 'free', 
+                ])
+
+            for line in response.split(';'):
+                line = line.strip()
+                if line == 'BYT':
+                    continue
+                elif line == '':
+                    continue
+                else:
+                    p = line.split(':')
+                    if p[4] == 'free':
+                        foundSize = float(p[3][:-2])
+                        if foundSize >= self.volumeSize*1024:
+                            print p
+
+                            region = { 'device' : block['device'],
+                                       'start' : float(p[1][:-2]),
+                                       'end' : float(p[2][:-2]),
+                                       'size' : float(p[3][:-2]) , } 
+                            break
+
+        if len(region) > 0:
+            # create partition 
+            logging.debug('found a suitable region on %s' % region['device'])
+
+            # get a list of all the existing partition numbers on this 
+            # block device
+            response = subprocess.check_output( [ 'parted', '-sm', 
+                                            region['device'],
+                                            'print'] )
+            old_numbers = set()
+            for partition in response.splitlines()[2:]:
+                p = partition.split(':')
+                old_numbers.add(p[0])
+            logging.debug('existing partition numbers: %s' % old_numbers)
+
+            start = '%.1fMB' % region['start']
+            end = '%.1fMB' % (self.volumeSize*1024 + region['start'])
+            # make the partition
+            try:
+                response = subprocess.check_output( ['parted',
+                              '-sm',
+                              region['device'],
+                              'mkpart',
+                              # can we make an assumption here about
+                              'primary', # extended? logical?
+                              start,
+                              end]
+                              )
+
+                # so what partition number was created?
+
+                # get a list of all the new partition numbers on this 
+                # block device
+                response = subprocess.check_output( [ 'parted', '-sm', 
+                                                region['device'],
+                                                'print'] )
+                new_numbers = set()
+                for partition in response.splitlines()[2:]:
+                    p = partition.split(':')
+                    new_numbers.add(p[0])
+                logging.debug('new partition numbers: %s' % new_numbers)
+
+                number = new_numbers.difference(old_numbers).pop()
+
+                # TODO: set partition flag?
+
+                device = region['device'] + number
+                logging.debug('new partition is %s' % device)
+
+                # this is the device to write content to:
+                return device
+         
+            except subprocess.CalledProcessError as e:
+                logging.error('Error with parted')
+                logging.error(e.cmd)
+                logging.error(e.output)
+
+        else:
+            # no suitable region found
+            logging.error('No suitable region found!')
+            # throw an error
+            return ''
+
 
 service = Service()
 
