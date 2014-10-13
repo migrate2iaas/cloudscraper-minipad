@@ -27,7 +27,7 @@ post(payload)
 
 ## Configure Import ####
 payload = {'Action' : 'ConfigureImport',
-           'SameDriveMode' : 'True',
+           'SameDriveMode' : 'False',
            'UseBuiltInStorage' : 'True' }
 post(payload)
 
