@@ -39,6 +39,7 @@ import subprocess
 # need to log to a file as well
 # See Logging Cookbook to set this up
 logging.basicConfig(level=logging.DEBUG,
+                    filename='/var/log/minipad.log',
                     format='(%(threadName)-10s) %(message)s',)
 
 class Service(object):
