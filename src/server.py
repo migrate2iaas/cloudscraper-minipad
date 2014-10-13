@@ -406,7 +406,7 @@ class Service(object):
         size = import_.find('size').text
 
         # Volume is in GB
-        self.volumeSize = import_.find('volume-size').text
+        self.volumeSize = float(import_.find('volume-size').text)
 
         # number of parts
         parts = import_.find('parts')
@@ -459,6 +459,10 @@ class Service(object):
         The command line program 'parted' is used to
         do most of the heavy lifting here
         """
+
+        logging.debug('Finding a free region of size %s' % self.volumeSize)
+
+        logging.debug('SameDriveMode: %s' % self.SameDriveMode)
 
         #2.2.1 If SameDriveMode was passed in ConfigureImport request, 
         # and ImportInstance command is being processed, partition the 
@@ -530,6 +534,9 @@ class Service(object):
         if len(block) > 0:
             block_devices.append(block)
 
+        for block in block_devices:
+            logging.debug('found: %s (%sMB)' % (block['device'], block['size']))
+
         # As well, let's get a list of paritions with their mountpoints
         # we are searching for the system drive
         system_drive = ''
@@ -579,8 +586,8 @@ class Service(object):
                     p = line.split(':')
                     if p[4] == 'free':
                         foundSize = float(p[3][:-2])
+                        logging.debug('free region: %s' % p)
                         if foundSize >= self.volumeSize*1024:
-                            print p
 
                             region = { 'device' : block['device'],
                                        'start' : float(p[1][:-2]),
