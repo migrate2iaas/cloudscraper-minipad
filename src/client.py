@@ -3,12 +3,19 @@ import time
 from lxml import etree
 
 # connect to server
-host = 'localhost'
-port = 8080
+#host = 'localhost'
+#port = 8080
 
+server_ip = '192.168.2.20'
+server_port = 80
+
+# IP is localhost. Can make this more dynamic
+client_ip = '192.168.2.17:8000'
+manifest = 'M2IAAS-256EBF9F-Cmanifest.xml'
+manifest = '1312-28801ECA87-Cmanifest.xml'
 
 def post(payload):
-    url = "http://%s:%d/" % (host, port)
+    url = "http://%s:%d/" % (server_ip, server_port)
 
     r = requests.post(url, data = payload)
     e = etree.fromstring(r.content)
@@ -27,12 +34,11 @@ post(payload)
 # get status
 payload = {'Action' : 'GetImportTargetStatus',}
 post(payload)
-
 ## Import an Instance
 payload = {'Action' : 'ImportInstance',
            'Image.Format' : 'VMDK',
            'Image.ImportManifestUrl' :
-           'http://54.165.199.59/gumbo-disk1.vmdkmanifest.xml'
+           'http://%s/%s' % (client_ip, manifest)
           }
 post(payload)
 
