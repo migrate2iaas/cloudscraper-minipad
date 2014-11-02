@@ -7,7 +7,7 @@ from lxml import etree
 #port = 8080
 
 # need to get this from VM
-server_ip = '192.168.2.18'
+server_ip = '54.164.136.46'
 server_port = 80
 
 # IP is localhost. Can make this more dynamic...
