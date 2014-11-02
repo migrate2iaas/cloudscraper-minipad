@@ -15,8 +15,30 @@ def post(payload):
     try:
         e = etree.fromstring(r.content)
         print etree.tostring(e, pretty_print=True)
+        return e
     except:
-        print r.content
+        # save log files to disk
+        log = open('minipad.log.tar.gz', 'wb')
+        log.write(r.content)
+        log.close()
+
+        print 'Log Received: saved as minipad.log.tar.gz'
+
+        return None
+
+# configure instance
+payload = {'Action' : 'ConfigureImport',
+           'SameDriveMode' : 'False',
+           'UseBuiltInStorage' : 'False',
+          }
+post(payload)
+
+# wait for ConfigurInstance
+time.sleep(2)
+
+# get status
+payload = {'Action' : 'GetImportTargetStatus',}
+r = post(payload)
 
 ## Import an Instance
 payload = {'Action' : 'ImportInstance',
@@ -26,27 +48,26 @@ payload = {'Action' : 'ImportInstance',
 post(payload)
 
 done = False
-while True:
+while not done:
+    # wait for 5 seconds
+    delay = 5
+    print "Waiting %d seconds..." % delay
+    print
+    time.sleep(delay)
+
     ## DescribeConversionTasks
     payload = {'Action' : 'DescribeConversionTasks',}
     post(payload)
 
     # get status
     payload = {'Action' : 'GetImportTargetStatus',}
-    post(payload)
-
-    # wait for 5 seconds
-    delay = 1
-    print "Waiting %d seconds..." % delay
-    print
-    time.sleep(delay)
-
-    # if import complete, break
-    if done:
-        break
+    r = post(payload)
 
     # check status
+    print r
+
     done = True
+
 
 # get status
 payload = {'Action' : 'GetImportTargetStatus',}
