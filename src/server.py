@@ -32,6 +32,7 @@ import traceback
 import tarfile
 import shortuuid
 import cgi
+import re
 import threading
 import psutil # for detecting disk usage
 import os
@@ -479,9 +480,9 @@ class Service(object):
 
         # 2.2 Find a disk/volume in the system
 
-        device = self.GetVolume()
+        device = self.GetDisk()
 
-        if device == '':
+        if device == '/dev/null':
             # no device found
             self.status = 'Error'
             self.statusMessage = 'No available device/volume found'
@@ -513,8 +514,8 @@ class Service(object):
             # 2.3 For every part download it into memory and write 
             # to the found disk device (e.g. /dev/sdb)
 
-            #r = requests.get(get_url)
-            #logger.debug('Downloaded %d bytes' % len(r.content))
+            r = requests.get(get_url)
+            logger.debug('Downloaded %d bytes (expected %d bytes)' % (len(r.content), end-start))
 
             # write to appropriate volume
             handle.write(r.content)
@@ -530,13 +531,97 @@ class Service(object):
         self.statusMessage = 'Downloaded'
         self.statusCode = '0'
 
+    def GetDisk(self):
+        """
+        Find a block device with sufficient free space 
+
+        use lsblk to deteck disks
+        """
+
+        logger.debug('SameDriveMode: %s' % self.SameDriveMode)
+
+        #2.2.1 If SameDriveMode was passed in ConfigureImport request, 
+        # and ImportInstance command is being processed, partition the 
+        # free space on the system drive
+
+        if self.SameDriveMode and self.ImportType == 'ImportInstance':
+	    # what drive is the root system on?
+
+            # partition free space on system drive
+
+            pass
+        else:
+            # get list of all disks/volumes on system
+            # find an appropriate free disk 
+            # (criteria - size should be equal to "volume-size" in 
+            # GBs set in the manifest) in the system. Note, disks are
+            # added into the system dynamically.
+
+            pass
+
+        # Typical output from lsblk -r
+        """
+        NAME MAJ:MIN RM SIZE RO TYPE MOUNTPOINT
+        xvda 202:0 0 3G 0 disk 
+        xvda1 202:1 0 2.5G 0 part /
+        xvda2 202:2 0 1K 0 part 
+        xvda5 202:5 0 509M 0 part [SWAP]
+        xvdf 202:80 0 20G 0 disk 
+        xvdf1 202:81 0 19.1G 0 part 
+        """
+        device = '/dev/null'
+
+        logger.debug('Looking for disk of size %s' % (self.volumeSize*1024*1024))
+
+        # get a list of all the possible block devices to consider
+        lsblk = subprocess.Popen(['lsblk', '-rb'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        for line in lsblk.stdout:
+            if 'disk' in line:
+                parts = re.split(r'\s+', line.strip())
+                name, majmin, rm, size, ro, devtype = parts[:6]
+                if len(parts) > 6:
+                    mountpoint = parts[6]
+                else:
+                    mountpoint = None
+
+                logger.debug(line)
+                logger.debug('name:%s size:%s' % (name, size))
+
+                # skip system drive
+                if name == 'xvda':
+                    continue
+
+                if int(size) >= int(self.volumeSize*1024*1024):
+                    device = '/dev/' + name
+
+                    break
+
+                # what happens if we want to find space on the same disk as the VM?
+
+        returncode = lsblk.wait()
+
+        if returncode:
+            logger.error("Error with lsblk program.")
+
+
+        logger.debug("Using device " + device)
+
+        return device
+
+ 
     def GetVolume(self):
         """
+        DEPRECATED
+
         Find a block device with sufficient free space and
         create a new partition
 
         The command line program 'parted' is used to
         do most of the heavy lifting here
+
+        ((THIS WAS THE FIRST APPROACH.  IT MADE THE ASSUMPTION THAT WE NEEDED
+          FIND AVAILABLE SPACE ON A DISK AND CREATE A PARTITION TO RECEIVE
+          THE VOLUME.  See GetDisk() for the current approach ))
         """
 
         logger.debug('Finding a free region of size %s' % self.volumeSize)
