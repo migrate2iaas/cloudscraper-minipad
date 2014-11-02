@@ -29,6 +29,7 @@ from BaseHTTPServer import BaseHTTPRequestHandler
 import requests
 from lxml import etree
 import traceback
+import tarfile
 import shortuuid
 import cgi
 import threading
@@ -36,11 +37,23 @@ import psutil # for detecting disk usage
 import os
 import subprocess
 
-# need to log to a file as well
-# See Logging Cookbook to set this up
-logging.basicConfig(level=logging.DEBUG,
-                    filename='/var/log/minipad.log',
-                    format='(%(threadName)-10s) %(message)s',)
+
+logger = logging.getLogger('minipad')
+logger.setLevel(logging.DEBUG)
+# create file handler which logs even debug messages
+fh = logging.FileHandler('/var/log/minipad.log')
+fh.setLevel(logging.DEBUG)
+# create console handler with a higher log level
+ch = logging.StreamHandler()
+ch.setLevel(logging.DEBUG)
+# create formatter and add it to the handlers
+formatter = logging.Formatter('[%(asctime)s] (%(threadName)-10s) %(message)s',)
+fh.setFormatter(formatter)
+ch.setFormatter(formatter)
+# add the handers to logger
+logger.addHandler(fh)
+logger.addHandler(ch)
+
 
 class Service(object):
     """the web service"""
@@ -48,7 +61,7 @@ class Service(object):
     def __init__(self):
         """inits service"""
 
-        logging.debug('Web Service initialized')
+        logger.debug('Web Service initialized')
 
         self.Statuses = ['NotConfigured',
                          'Initializing',
@@ -63,7 +76,7 @@ class Service(object):
     def configure_import(self):
         """ """
 
-        logging.debug('Do the work of configuration')
+        logger.debug('Do the work of configuration')
 
         self.status = 'Initializing'
 
@@ -93,7 +106,7 @@ class Service(object):
         self.status = 'ReadyToTransfer'
 
         # done
-        logging.debug('ConfigureImport complete')
+        logger.debug('ConfigureImport complete')
 
     def ConfigureImport(self, 
                         SameDriveMode=None, 
@@ -101,14 +114,14 @@ class Service(object):
                         **kwargs):
         """Preconfigure the appliance"""
 
-        logging.debug('ConfigureImport called')
+        logger.debug('ConfigureImport called')
 
         response = etree.Element('Response')
         code = 500 # Server Error
         Errors = etree.SubElement(response, 'Errors')
 
         if self.status <> 'NotConfigured':
-            logging.error('AlreadyConfigured')
+            logger.error('AlreadyConfigured')
 
             error = "AlreadyConfigured"
 
@@ -121,7 +134,7 @@ class Service(object):
         elif SameDriveMode == 'False':
             self.SameDriveMode = False
         else:
-            logging.debug('SameDriveMode missing or wrong value')
+            logger.debug('SameDriveMode missing or wrong value')
             code = 400
             return (code, response)
 
@@ -139,7 +152,7 @@ class Service(object):
             self.UseBuiltInStorage = False
 
         else:
-            logging.debug('UseBuiltInStorage or wrong value')
+            logger.debug('UseBuiltInStorage or wrong value')
             code = 400
             return (code, response)
             
@@ -185,7 +198,7 @@ class Service(object):
     def GetImportTargetStatus(self, **kwargs):
         """Queries the target appliance status"""
 
-        logging.debug('GetImportTargetStatus called')
+        logger.debug('GetImportTargetStatus called')
 
         response = etree.Element("ImportTargetStatus")
         status = etree.SubElement(response, 'Status')
@@ -233,8 +246,8 @@ class Service(object):
         Only Image.Format and Image.ImportManifestUrl parameters 
             are needed. Ignore other parms.
         """
-        logging.debug('ImportInstance called')
-        logging.debug('parms: %s' % kwargs)
+        logger.debug('ImportInstance called')
+        logger.debug('parms: %s' % kwargs)
 
         self.ImportManifestUrl = kwargs['Image.ImportManifestUrl']
         self.ImportType = 'ImportInstance'
@@ -258,7 +271,7 @@ class Service(object):
 
         needed. Ignore other parms.
         """
-        logging.debug('ImportVolume called')
+        logger.debug('ImportVolume called')
 
         # launch thread to go import volume
         worker = threading.Thread(target=self.handle_import,
@@ -320,7 +333,7 @@ class Service(object):
             statusMessage = etree.SubElement(item, 'statusMessage')
             statusMessage.text = 'Pending'
 
-        logging.debug('DescribeConversionTasks called')
+        logger.debug('DescribeConversionTasks called')
 
         return (200, response)
 
@@ -341,7 +354,7 @@ class Service(object):
         Note: nothing should be done a stub for now.
         """
         
-        logging.debug('FinalizeConversion called')
+        logger.debug('FinalizeConversion called')
 
         # should probably throw an error if the conversion is still
         # in progress
@@ -371,13 +384,28 @@ class Service(object):
                 Default: False 
                 Valid values: True|False
 
-    Response Elements:
-        Log tar.gz file stream
+        Response Elements:
+            Log tar.gz file stream
 
-    Errors:
-        InternalError, BadParameters
-    """
-        response = etree.Element('Response')
+        Errors:
+            InternalError, BadParameters
+        """
+	
+        # compress log file
+        logfilename = '/var/log/minipad.log'
+        out = tarfile.open('minipad.log.tar.gz', mode='w:gz')
+        try:
+            out.add(logfilename)
+        finally:
+            out.close()
+
+        print '%-30s %-10s' % (logfilename, os.stat(logfilename).st_size)
+
+        # should we really be sending the binary stream?
+        #log = open('minipad.log.tar.gz', 'rb')
+        log = open('/var/log/minipad.log', 'r')
+
+        response = log.read()
 
         return (200, response)
 
@@ -392,10 +420,10 @@ class Service(object):
         # XML manifest URL is passed via ImportInstance \ ImportVolume request.
         # XML should be downloaded via URL and parsed. 
         # XML contains list of URLs to image parts. 
-        logging.debug('downloading manifest')
+        logger.debug('downloading manifest')
         
         url = self.ImportManifestUrl
-        logging.debug(url)
+        logger.debug(url)
 
         r = requests.get(url)
         xml = r.content
@@ -425,7 +453,7 @@ class Service(object):
 
         for part in parts.findall('part'):
             index = int(part.get('index'))
-            logging.debug('part index %d' % index)
+            logger.debug('part index %d' % index)
 
             byte_range = part.find('byte-range')
             start = int(byte_range.get('start'))
@@ -442,7 +470,7 @@ class Service(object):
             # to the found disk device (e.g. /dev/sdb)
 
             #r = requests.get(get_url)
-            #logging.debug('Downloaded %d bytes' % len(r.content))
+            #logger.debug('Downloaded %d bytes' % len(r.content))
 
             # write to appropriate volume
             handle.write(r.content)
@@ -461,9 +489,9 @@ class Service(object):
         do most of the heavy lifting here
         """
 
-        logging.debug('Finding a free region of size %s' % self.volumeSize)
+        logger.debug('Finding a free region of size %s' % self.volumeSize)
 
-        logging.debug('SameDriveMode: %s' % self.SameDriveMode)
+        logger.debug('SameDriveMode: %s' % self.SameDriveMode)
 
         #2.2.1 If SameDriveMode was passed in ConfigureImport request, 
         # and ImportInstance command is being processed, partition the 
@@ -536,7 +564,7 @@ class Service(object):
             block_devices.append(block)
 
         for block in block_devices:
-            logging.debug('found: %s (%sMB)' % (block['device'], block['size']))
+            logger.debug('found: %s (%sMB)' % (block['device'], block['size']))
 
         # As well, let's get a list of paritions with their mountpoints
         # we are searching for the system drive
@@ -551,9 +579,9 @@ class Service(object):
 
         if system_drive == '':
             # if system_drive can not be determined
-            logging.warning('system drive cannot be determined')
+            logger.warning('system drive cannot be determined')
         else:
-            logging.debug('system drive is %s' % system_drive)
+            logger.debug('system drive is %s' % system_drive)
 
         # sentinal to detect when a suitable free space has been found
         region = {}
@@ -587,7 +615,7 @@ class Service(object):
                     p = line.split(':')
                     if p[4] == 'free':
                         foundSize = float(p[3][:-2])
-                        logging.debug('free region: %s' % p)
+                        logger.debug('free region: %s' % p)
                         if foundSize >= self.volumeSize*1024:
 
                             region = { 'device' : block['device'],
@@ -598,7 +626,7 @@ class Service(object):
 
         if len(region) > 0:
             # create partition 
-            logging.debug('found a suitable region on %s' % region['device'])
+            logger.debug('found a suitable region on %s' % region['device'])
 
             # get a list of all the existing partition numbers on this 
             # block device
@@ -609,7 +637,7 @@ class Service(object):
             for partition in response.splitlines()[2:]:
                 p = partition.split(':')
                 old_numbers.add(p[0])
-            logging.debug('existing partition numbers: %s' % old_numbers)
+            logger.debug('existing partition numbers: %s' % old_numbers)
 
             start = '%.1fMB' % region['start']
             end = '%.1fMB' % (self.volumeSize*1024 + region['start'])
@@ -636,26 +664,26 @@ class Service(object):
                 for partition in response.splitlines()[2:]:
                     p = partition.split(':')
                     new_numbers.add(p[0])
-                logging.debug('new partition numbers: %s' % new_numbers)
+                logger.debug('new partition numbers: %s' % new_numbers)
 
                 number = new_numbers.difference(old_numbers).pop()
 
                 # TODO: set partition flag?
 
                 device = region['device'] + number
-                logging.debug('new partition is %s' % device)
+                logger.debug('new partition is %s' % device)
 
                 # this is the device to write content to:
                 return device
          
             except subprocess.CalledProcessError as e:
-                logging.error('Error with parted')
-                logging.error(e.cmd)
-                logging.error(e.output)
+                logger.error('Error with parted')
+                logger.error(e.cmd)
+                logger.error(e.output)
 
         else:
             # no suitable region found
-            logging.error('No suitable region found!')
+            logger.error('No suitable region found!')
             # throw an error
             return ''
 
@@ -666,7 +694,7 @@ class Handler(BaseHTTPRequestHandler):
     """Call method of Service() based on Action field in POST"""
     
     def do_GET(self):
-	logging.debug('unsupported GET recieved')
+	logger.debug('unsupported GET recieved')
 
     def do_POST(self):
         # Parse the form data posted
@@ -677,9 +705,9 @@ class Handler(BaseHTTPRequestHandler):
                      'CONTENT_TYPE':self.headers['Content-Type'],
                      })
 
-        logging.debug('response received')
+        logger.debug('response received')
         for key, value in [(key, form[key].value) for key in form]:
-            logging.debug('  %s: %s' % (key, value))
+            logger.debug('  %s: %s' % (key, value))
 
         # Depending on Action, call method
         # test for Action? # 'Action' in form?
@@ -733,16 +761,27 @@ class Handler(BaseHTTPRequestHandler):
         """
 
         # Send response
-        xml = etree.tostring(response, xml_declaration=True, 
-                encoding = "utf-8")
-
-        logging.debug('code: %d' % code)
-        logging.debug('response: %s' % xml)
-
         self.send_response(code)
-        self.end_headers()
-        self.wfile.write(xml)
+        logger.debug('code: %d' % code)
 
+        # need to detect if response is xml or not...
+        if isinstance(response, str):
+            self.send_header('Content-type', 'text/html')
+            self.end_headers()
+            self.wfile.write(response)
+            logger.debug('response: text/html')
+            logger.debug('response: %s' % response)
+        else:
+            xml = etree.tostring(response, 
+                                 xml_declaration=True, 
+                                encoding = "utf-8")
+
+            logger.debug('response: %s' % xml)
+
+            self.end_headers()
+            self.wfile.write(xml)
+
+            
 """
     Errors should contain code, description and error stack trace if any (see appendix below)
      Calls are coming sequentially. No task queues needed. 

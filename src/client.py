@@ -65,6 +65,9 @@ while True:
     # check status
     done = True
 
+payload = {'Action' : 'GetImportTargetLogs', }
+post(payload)
+
 # finalizeimport
 payload = {'Action' : 'FinalizeConversion'}
 post(payload)
