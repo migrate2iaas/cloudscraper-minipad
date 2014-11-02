@@ -390,7 +390,10 @@ class Service(object):
         Errors:
             InternalError, BadParameters
         """
-	
+            
+        # TODO: handle parameters
+        # TODO: select only a date range from the log file
+
         # compress log file
         logfilename = '/var/log/minipad.log'
         out = tarfile.open('minipad.log.tar.gz', mode='w:gz')
