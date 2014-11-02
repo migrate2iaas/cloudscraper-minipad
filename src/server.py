@@ -402,13 +402,9 @@ class Service(object):
         finally:
             out.close()
 
-        print '%-30s %-10s' % (logfilename, os.stat(logfilename).st_size)
+        log_tarball = open('minipad.log.tar.gz', 'rb')
 
-        # should we really be sending the binary stream?
-        #log = open('minipad.log.tar.gz', 'rb')
-        log = open('/var/log/minipad.log', 'r')
-
-        response = log.read()
+        response = log_tarball.read()
 
         return (200, response)
 
@@ -768,22 +764,19 @@ class Handler(BaseHTTPRequestHandler):
         logger.debug('code: %d' % code)
 
         # need to detect if response is xml or not...
-        if isinstance(response, str):
-            self.send_header('Content-type', 'text/html')
-            self.end_headers()
-            self.wfile.write(response)
-            logger.debug('response: text/html')
-            logger.debug('response: %s' % response)
-        else:
+        try:
             xml = etree.tostring(response, 
                                  xml_declaration=True, 
                                 encoding = "utf-8")
 
             logger.debug('response: %s' % xml)
-
             self.end_headers()
             self.wfile.write(xml)
-
+        except:
+            self.send_header('Content-type', 'application/x-gzip')
+            self.end_headers()
+            self.wfile.write(response)
+            logger.debug('response: sending log file')
             
 """
     Errors should contain code, description and error stack trace if any (see appendix below)
