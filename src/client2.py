@@ -2,18 +2,11 @@ import requests
 import time
 from lxml import etree
 
-# connect to server
-#host = 'localhost'
-#port = 8080
-
 # need to get this from VM
 server_ip = '54.164.136.46'
 server_port = 80
 
-# IP is localhost. Can make this more dynamic...
-client_ip = '192.168.2.17:8000'
-manifest = 'M2IAAS-256EBF9F-Cmanifest.xml'
-manifest = '1312-28801ECA87-Cmanifest.xml'
+manifesturl = 'https://s3.amazonaws.com/minipad/1312-28801ECA87-Cmanifest.xml'
 
 def post(payload):
     url = "http://%s:%d/" % (server_ip, server_port)
@@ -24,6 +17,13 @@ def post(payload):
         print etree.tostring(e, pretty_print=True)
     except:
         print r.content
+
+## Import an Instance
+payload = {'Action' : 'ImportInstance',
+           'Image.Format' : 'VMDK',
+           'Image.ImportManifestUrl' : manifesturl,
+          }
+post(payload)
 
 done = False
 while True:
@@ -54,4 +54,12 @@ post(payload)
 
 # get log file
 payload = {'Action' : 'GetImportTargetLogs',}
+post(payload)
+
+# finalizeimport
+payload = {'Action' : 'FinalizeConversion'}
+post(payload)
+
+# get status
+payload = {'Action' : 'GetImportTargetStatus',}
 post(payload)

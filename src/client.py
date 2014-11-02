@@ -34,6 +34,7 @@ post(payload)
 # get status
 payload = {'Action' : 'GetImportTargetStatus',}
 post(payload)
+
 ## Import an Instance
 payload = {'Action' : 'ImportInstance',
            'Image.Format' : 'VMDK',
