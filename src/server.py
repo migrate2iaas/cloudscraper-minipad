@@ -37,7 +37,6 @@ import psutil # for detecting disk usage
 import os
 import subprocess
 
-
 logger = logging.getLogger('minipad')
 logger.setLevel(logging.DEBUG)
 # create file handler which logs even debug messages
@@ -65,20 +64,25 @@ class Service(object):
 
         self.Statuses = ['NotConfigured',
                          'Initializing',
+                         'Error',
                          'ReadyToTransfer',
                          'FinishedTransfer',
                          'FinishedConversion']
-        self.status = 'NotConfigured'
-                         
 
-        self.Log = []
+        self.status = 'NotConfigured'
+        self.statusMessage = 'Service not configured'
+        self.statusCode = '0'
+
 
     def configure_import(self):
-        """ """
+        """ 
+        """
 
         logger.debug('Do the work of configuration')
 
         self.status = 'Initializing'
+        self.statusMessage = 'Setting up for import'
+        self.statusCode = '0'
 
         # how to return an error??
 
@@ -104,6 +108,8 @@ class Service(object):
         self.volumeSize = 0
 
         self.status = 'ReadyToTransfer'
+        self.statusMessage = 'Ready to receive transfer request'
+        self.statusCode = '0'
 
         # done
         logger.debug('ConfigureImport complete')
@@ -123,7 +129,15 @@ class Service(object):
         if self.status <> 'NotConfigured':
             logger.error('AlreadyConfigured')
 
-            error = "AlreadyConfigured"
+            Error = etree.SubElement(Errors, 'Error')
+            Code = etree.SubElement(Error, 'Code')
+            Code.text = 'AlreadyConfigured'
+            Message = etree.SubElement(Error, 'Message')
+            Message.text = 'Import already configured'
+
+            self.status = 'Error'
+            self.statusMessage = Message.text
+            self.statusCode = Code.text
 
             return (code, response)
 
@@ -136,6 +150,17 @@ class Service(object):
         else:
             logger.debug('SameDriveMode missing or wrong value')
             code = 400
+
+            Error = etree.SubElement(Errors, 'Error')
+            Code = etree.SubElement(Error, 'Code')
+            Code.text = 'BadSameDriveMode'
+            Message = etree.SubElement(Error, 'Message')
+            Message.text = 'SameDriveMode missing or wrong value'
+
+            self.status = 'Error'
+            self.statusMessage = Message.text
+            self.statusCode = Code.text
+
             return (code, response)
 
         #UseBuiltInStorage 
@@ -154,6 +179,17 @@ class Service(object):
         else:
             logger.debug('UseBuiltInStorage or wrong value')
             code = 400
+
+            Error = etree.SubElement(Errors, 'Error')
+            Code = etree.SubElement(Error, 'Code')
+            Code.text = 'BadUseBuiltInStorage'
+            Message = etree.SubElement(Error, 'Message')
+            Message.text = 'BuiltInStorage missing or wrong value'
+
+            self.status = 'Error'
+            self.statusMessage = Message.text
+            self.statusCode = Code.text
+
             return (code, response)
             
         """
@@ -198,6 +234,28 @@ class Service(object):
     def GetImportTargetStatus(self, **kwargs):
         """Queries the target appliance status"""
 
+
+        """
+        Response Elements:
+            Type: ImportTargetStatus
+            Contents:
+            Status
+                Type: String
+                Valid values: NotConfigured|Initializing|ReadyToTransfer|
+                              Error|FinishedTransfer|FinishedConversion
+            StatusMessage
+                The description of current step or error if any
+                Type: String
+
+            StatusCode
+                Status or error code if any
+                Type: Integer
+
+        Errors:
+            InternalError, BadParameters
+
+        """
+
         logger.debug('GetImportTargetStatus called')
 
         response = etree.Element("ImportTargetStatus")
@@ -205,33 +263,12 @@ class Service(object):
         status.text = self.status
 
         StatusMessage = etree.SubElement(response, 'StatusMessage')
-        StatusMessage.text = ''
+        StatusMessage.text = self.statusMessage
 
         StatusCode = etree.SubElement(response, 'StatusCode')
-        StatusCode.text = '0'
+        StatusCode.text = self.statusCode
 
         return (200, response)
-
-        """
-    Response Elements:
-    Type: ImportTargetStatus
-    Contents:
-        Status
-            Type: String
-            Valid values: NotConfigured|Initializing|ReadyToTransfer|
-                          Error|FinishedTransfer|FinishedConversion
-        StatusMessage
-            The description of current step or error if any
-            Type: String
-
-        StatusCode
-            Status or error code if any
-            Type: Integer
-
-    Errors:
-        InternalError, BadParameters
-
-    """
 
     def ImportInstance(self, **kwargs):
         """
@@ -331,7 +368,7 @@ class Service(object):
             state.text = self.status
 
             statusMessage = etree.SubElement(item, 'statusMessage')
-            statusMessage.text = 'Pending'
+            statusMessage.text = self.statusMessage
 
         logger.debug('DescribeConversionTasks called')
 
@@ -446,9 +483,17 @@ class Service(object):
 
         if device == '':
             # no device found
+            self.status = 'Error'
+            self.statusMessage = 'No available device/volume found'
+            self.statusCode = 'NoDevice'
+
             return
 
         handle = open(device, 'wb')
+
+        self.status = 'ReadyToTransfer'
+        self.statusMessage = 'Downloading'
+        self.statusCode = '0'
 
         for part in parts.findall('part'):
             index = int(part.get('index'))
@@ -474,10 +519,16 @@ class Service(object):
             # write to appropriate volume
             handle.write(r.content)
 
+            self.bytesConverted += (end-start)
+
         # Every part of conversion task should be logged, 
         # the current step and its status should be accessible via 
         # DescribeConversionTasks command.
         handle.close()
+
+        self.status = 'FinishedTransfer'
+        self.statusMessage = 'Downloaded'
+        self.statusCode = '0'
 
     def GetVolume(self):
         """
