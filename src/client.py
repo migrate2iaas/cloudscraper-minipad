@@ -6,7 +6,8 @@ from lxml import etree
 server_ip = '54.164.136.46'
 server_port = 80
 
-manifesturl = 'https://s3.amazonaws.com/minipad/1312-28801ECA87-Cmanifest.xml'
+#manifesturl = 'https://s3.amazonaws.com/minipad/1312-28801ECA87-Cmanifest.xml'
+manifesturl = 'https://s3.amazonaws.com/minipad/25a1816b-4859-4d4b-9419-df9a6542d2a1/Minipad-disk1.vmdkmanifest.xml'
 
 def post(payload):
     url = "http://%s:%d/" % (server_ip, server_port)
@@ -25,6 +26,10 @@ def post(payload):
         print 'Log Received: saved as minipad.log.tar.gz'
 
         return None
+
+# reset the service into its initial state
+payload = {'Action' : 'Restart'}
+post(payload)
 
 # configure instance
 payload = {'Action' : 'ConfigureImport',
@@ -64,9 +69,9 @@ while not done:
     r = post(payload)
 
     # check status
-    print r
-
-    done = True
+    Status = r.find('Status')
+    if Status.text in ['Error', 'FinishedTransfer']:
+        done = True
 
 
 # get status
