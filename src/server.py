@@ -12,6 +12,10 @@ The service is "one-shot". It accepts
     [0..many] ImportVolume
     [0..many] DescribeConversionTasks
     one FinalizeConversion
+
+    for development there is also a Restart action
+    which puts the service back in a initial state.
+
 After that, treat service as unavailable. 
 User will create a new VM from the image in case new is needed. 
 
@@ -74,6 +78,8 @@ class Service(object):
         self.statusMessage = 'Service not configured'
         self.statusCode = '0'
 
+        self.restartEvent = threading.Event()
+        self.workers = []
 
     def configure_import(self):
         """ 
@@ -115,11 +121,40 @@ class Service(object):
         # done
         logger.debug('ConfigureImport complete')
 
+    def Restart(self, **kwargs):
+        """
+        Restart the service back into the initial unconfigured state
+
+        Stops all worker threads.
+        """
+
+        # signal any alive workers to stop
+        self.restartEvent.set()
+        while len(self.workers) > 0:
+            worker = self.workers.pop()
+
+            # wait for worker to complete
+            if worker.isAlive():
+                worker.join()
+
+        self.restartEvent.clear()
+
+        self.status = 'NotConfigured'
+        self.statusMessage = 'Service not configured'
+        self.statusCode = '0'
+
+        response = etree.Element("RestartResult")
+        result = etree.SubElement(response, 'Result')
+        result.text = "True"
+
+        code = 200
+        return (code, response)
+
     def ConfigureImport(self, 
                         SameDriveMode=None, 
                         UseBuiltInStorage=None,
                         **kwargs):
-        """Preconfigure the appliance"""
+        """Configure the appliance"""
 
         logger.debug('ConfigureImport called')
 
@@ -219,16 +254,20 @@ class Service(object):
         </Response>
         """
 
-
         # launch thread to go initialize the import
         worker = threading.Thread(target=self.configure_import,
                                   args=())
+
+        self.workers.append(worker)
+
         worker.start()
 
+        
         response = etree.Element("ConfigureImportResult")
         result = etree.SubElement(response, 'Result')
         result.text = "True"
 
+        code = 200
         return (code, response)
 
 
@@ -293,6 +332,7 @@ class Service(object):
         # launch thread to go import
         worker = threading.Thread(target=self.handle_import,
                                   args=())
+        self.workers.append(worker)
         worker.start()
 
         response = etree.Element('Response')
@@ -314,6 +354,7 @@ class Service(object):
         # launch thread to go import volume
         worker = threading.Thread(target=self.handle_import,
                                   args=())
+        self.workers.append(worker)
         worker.start()
 
         response = etree.Element('Response')
@@ -497,6 +538,11 @@ class Service(object):
         self.statusCode = '0'
 
         for part in parts.findall('part'):
+            
+            if self.restartEvent.isSet():
+                # stop early since restart has been signalled
+                break;
+
             index = int(part.get('index'))
             logger.debug('part index %d' % index)
 
