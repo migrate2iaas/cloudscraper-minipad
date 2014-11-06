@@ -27,12 +27,13 @@ __copyright__ = "Copyright (C) 2014 Migrate2Iaas"
 # --------------------------------------------------------
 
 import logging
+import traceback
+
 import time
 import datetime
 from BaseHTTPServer import BaseHTTPRequestHandler
 import requests
 from lxml import etree
-import traceback
 import tarfile
 import shortuuid
 import cgi
@@ -41,6 +42,8 @@ import threading
 import psutil # for detecting disk usage
 import os
 import subprocess
+
+import linux
 
 logger = logging.getLogger('minipad')
 logger.setLevel(logging.DEBUG)
@@ -520,7 +523,6 @@ class Service(object):
         count = parts.get('count')
 
         # 2.2 Find a disk/volume in the system
-
         device = self.GetDisk()
 
         if device == '/dev/null':
@@ -584,6 +586,7 @@ class Service(object):
         use lsblk to deteck disks
         """
 
+        logger.debug('GetDisk called')
         logger.debug('SameDriveMode: %s' % self.SameDriveMode)
 
         #2.2.1 If SameDriveMode was passed in ConfigureImport request, 
@@ -591,11 +594,18 @@ class Service(object):
         # free space on the system drive
 
         if self.SameDriveMode and self.ImportType == 'ImportInstance':
-	    # what drive is the root system on?
 
-            # partition free space on system drive
+            # what drive is the root system on?
+            host_instance = linux.Linux()
 
-            pass
+            rootdev = host_instance.getSystemDriveName()
+
+            # Do should we create a partition on this root device?
+            # (doesn't make system to overwrite the root filesystem)
+
+            # currently will fail
+            device = '/dev/null'
+
         else:
             # get list of all disks/volumes on system
             # find an appropriate free disk 
@@ -603,51 +613,47 @@ class Service(object):
             # GBs set in the manifest) in the system. Note, disks are
             # added into the system dynamically.
 
-            pass
+            # Typical output from lsblk -r
+            """
+            NAME MAJ:MIN RM SIZE RO TYPE MOUNTPOINT
+            xvda 202:0 0 3G 0 disk 
+            xvda1 202:1 0 2.5G 0 part /
+            xvda2 202:2 0 1K 0 part 
+            xvda5 202:5 0 509M 0 part [SWAP]
+            xvdf 202:80 0 20G 0 disk 
+            xvdf1 202:81 0 19.1G 0 part 
+            """
+            device = '/dev/null'
 
-        # Typical output from lsblk -r
-        """
-        NAME MAJ:MIN RM SIZE RO TYPE MOUNTPOINT
-        xvda 202:0 0 3G 0 disk 
-        xvda1 202:1 0 2.5G 0 part /
-        xvda2 202:2 0 1K 0 part 
-        xvda5 202:5 0 509M 0 part [SWAP]
-        xvdf 202:80 0 20G 0 disk 
-        xvdf1 202:81 0 19.1G 0 part 
-        """
-        device = '/dev/null'
+            logger.debug('Looking for disk of size %s' % (self.volumeSize*1024*1024))
 
-        logger.debug('Looking for disk of size %s' % (self.volumeSize*1024*1024))
+            # get a list of all the possible block devices to consider
+            lsblk = subprocess.Popen(['lsblk', '-rb'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            for line in lsblk.stdout:
+                if 'disk' in line:
+                    parts = re.split(r'\s+', line.strip())
+                    name, majmin, rm, size, ro, devtype = parts[:6]
+                    if len(parts) > 6:
+                        mountpoint = parts[6]
+                    else:
+                        mountpoint = None
 
-        # get a list of all the possible block devices to consider
-        lsblk = subprocess.Popen(['lsblk', '-rb'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        for line in lsblk.stdout:
-            if 'disk' in line:
-                parts = re.split(r'\s+', line.strip())
-                name, majmin, rm, size, ro, devtype = parts[:6]
-                if len(parts) > 6:
-                    mountpoint = parts[6]
-                else:
-                    mountpoint = None
+                    logger.debug(line)
+                    logger.debug('name:%s size:%s' % (name, size))
 
-                logger.debug(line)
-                logger.debug('name:%s size:%s' % (name, size))
+                    # skip system drive
+                    if name == 'xvda':
+                        continue
 
-                # skip system drive
-                if name == 'xvda':
-                    continue
+                    if int(size) >= int(self.volumeSize*1024*1024):
+                        device = '/dev/' + name
 
-                if int(size) >= int(self.volumeSize*1024*1024):
-                    device = '/dev/' + name
+                        break
 
-                    break
+            returncode = lsblk.wait()
 
-                # what happens if we want to find space on the same disk as the VM?
-
-        returncode = lsblk.wait()
-
-        if returncode:
-            logger.error("Error with lsblk program.")
+            if returncode:
+                logger.error("Error with lsblk program.")
 
 
         logger.debug("Using device " + device)
