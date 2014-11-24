@@ -515,14 +515,14 @@ class Service(object):
 	        import_ = manifest.find('import')
 	        if not import_ :
                         # then it's kinda error
-	        	logging.error("!!!ERROR: Cannot get the manifest\n")
-	        	logging.debug(xml);
+	        	logger.error("!!!ERROR: Cannot get the manifest")
+	        	logger.debug(str(xml));
                         # should seek for AWS error here - it's mostly possible
 	        	aws_error = manifest.find('Error')
-	        	message = "Unknown Error"
+	        	message = "Unknown Reason"
 	        	if aws_error:
 	        		message = aws_error.find('Message').text
-	        	raise IOError("Bad Manifest " + message)
+	        	raise IOError("Bad Manifest: " + message)
 	        # Size is ??
 	        size = import_.find('size').text
 	
@@ -592,7 +592,7 @@ class Service(object):
 
         except Exception as e:	
                 self.status = "Error"
-                self.statusMessage = "Error while downloading " + str(e)
+                self.statusMessage = "Error while downloading: " + str(e)
                 self.statusCode = '500'
                 logger.error("!!!ERROR: Exception while downloading: " + str(e) + "")
                 logger.error(traceback.format_exc())
