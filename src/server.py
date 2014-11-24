@@ -42,6 +42,8 @@ import threading
 import psutil # for detecting disk usage
 import os
 import subprocess
+import traceback
+
 
 import linux
 
@@ -496,88 +498,95 @@ class Service(object):
 
         The image to be converted split into 10 MB parts. 
         """
-        
-        # parts are described in XML manifest. 
-        # XML manifest URL is passed via ImportInstance \ ImportVolume request.
-        # XML should be downloaded via URL and parsed. 
-        # XML contains list of URLs to image parts. 
-        logger.debug('downloading manifest')
-        
-        url = self.ImportManifestUrl
-        logger.debug(url)
+        try:
+	        # parts are described in XML manifest. 
+	        # XML manifest URL is passed via ImportInstance \ ImportVolume request.
+	        # XML should be downloaded via URL and parsed. 
+	        # XML contains list of URLs to image parts. 
+	        logger.debug('downloading manifest')
+	        
+	        url = self.ImportManifestUrl
+	        logger.debug(url)
+	
+	        r = requests.get(url)
+	        xml = r.content
+	
+	        manifest = etree.fromstring(xml)
+	        import_ = manifest.find('import')
+	
+	        # Size is ??
+	        size = import_.find('size').text
+	
+	        # Volume is in GB
+	        self.volumeSize = float(import_.find('volume-size').text)
+	
+	        # number of parts
+	        parts = import_.find('parts')
+	        count = parts.get('count')
+	
+	        # 2.2 Find a disk/volume in the system
+	        device = self.GetDisk()
+	
+	        if device == '/dev/null':
+	            # no device found
+	            self.status = 'Error'
+	            self.statusMessage = 'No available device/volume found'
+	            self.statusCode = 'NoDevice'
+	
+	            return
+	
+	        handle = open(device, 'wb')
+	
+	        self.status = 'ReadyToTransfer'
+	        self.statusMessage = 'Downloading'
+	        self.statusCode = '0'
+	
+	        for part in parts.findall('part'):
+	            
+	            if self.restartEvent.isSet():
+	                # stop early since restart has been signalled
+	                break;
+	
+	            index = int(part.get('index'))
+	            logger.debug('part index %d' % index)
+	
+	            byte_range = part.find('byte-range')
+	            start = int(byte_range.get('start'))
+	            end = int(byte_range.get('end'))
+	            key = part.find('key').text
+	            get_url = part.find('get-url').text
+	
+	            """
+	            Every image part should be read and then written to 
+	            an appropriate volume. 
+	            """
+	
+	            # 2.3 For every part download it into memory and write 
+	            # to the found disk device (e.g. /dev/sdb)
+	
+	            r = requests.get(get_url)
+	            logger.debug('Downloaded %d bytes (expected %d bytes)' % (len(r.content), end-start+1))
+	
+	            # write to appropriate volume
+	            handle.write(r.content)
+	
+	            self.bytesConverted += (end-start+1)
+	
+	        # Every part of conversion task should be logged, 
+	        # the current step and its status should be accessible via 
+	        # DescribeConversionTasks command.
+	        handle.close()
+	
+	        self.status = 'FinishedTransfer'
+	        self.statusMessage = 'Downloaded'
+	        self.statusCode = '0'
 
-        r = requests.get(url)
-        xml = r.content
-
-        manifest = etree.fromstring(xml)
-        import_ = manifest.find('import')
-
-        # Size is ??
-        size = import_.find('size').text
-
-        # Volume is in GB
-        self.volumeSize = float(import_.find('volume-size').text)
-
-        # number of parts
-        parts = import_.find('parts')
-        count = parts.get('count')
-
-        # 2.2 Find a disk/volume in the system
-        device = self.GetDisk()
-
-        if device == '/dev/null':
-            # no device found
-            self.status = 'Error'
-            self.statusMessage = 'No available device/volume found'
-            self.statusCode = 'NoDevice'
-
-            return
-
-        handle = open(device, 'wb')
-
-        self.status = 'ReadyToTransfer'
-        self.statusMessage = 'Downloading'
-        self.statusCode = '0'
-
-        for part in parts.findall('part'):
-            
-            if self.restartEvent.isSet():
-                # stop early since restart has been signalled
-                break;
-
-            index = int(part.get('index'))
-            logger.debug('part index %d' % index)
-
-            byte_range = part.find('byte-range')
-            start = int(byte_range.get('start'))
-            end = int(byte_range.get('end'))
-            key = part.find('key').text
-            get_url = part.find('get-url').text
-
-            """
-            Every image part should be read and then written to 
-            an appropriate volume. 
-            """
-
-            # 2.3 For every part download it into memory and write 
-            # to the found disk device (e.g. /dev/sdb)
-
-            r = requests.get(get_url)
-            logger.debug('Downloaded %d bytes (expected %d bytes)' % (len(r.content), end-start+1))
-
-            # write to appropriate volume
-            handle.write(r.content)
-
-            self.bytesConverted += (end-start+1)
-
-        # Every part of conversion task should be logged, 
-        # the current step and its status should be accessible via 
-        # DescribeConversionTasks command.
-        handle.close()
-
-        self.status = 'FinishedTransfer'
-        self.statusMessage = 'Downloaded'
-        self.statusCode = '0'
+        except Exception as e:	
+                self.status = "Error"
+                self.statusMessage = "Error while downloading " + str(e)
+                self.statusCode = '500'
+                logger.error("!!!ERROR: Exception while downloading: " + str(e) + "")
+                logger.error(traceback.format_exc())
 
     def GetDisk(self):
         """
