@@ -515,7 +515,7 @@ class Service(object):
 	        import_ = manifest.find('import')
 	        if not import_ :
                         # then it's kinda error
-	        	logger.error("!!!ERROR: Cannot get the manifest")
+	        	logger.error("!!!ERROR: Cannot get the manifest in " + manifest.tag + " response")
 	        	logger.debug(str(xml));
                         # should seek for AWS error here - it's mostly possible
 	        	aws_error = manifest.find('Message')
