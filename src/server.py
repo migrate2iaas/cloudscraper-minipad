@@ -518,10 +518,10 @@ class Service(object):
 	        	logger.error("!!!ERROR: Cannot get the manifest")
 	        	logger.debug(str(xml));
                         # should seek for AWS error here - it's mostly possible
-	        	aws_error = manifest.find('Error')
+	        	aws_error = manifest.find('Message')
 	        	message = "Unknown Reason"
 	        	if aws_error:
-	        		message = aws_error.find('Message').text
+	        		message = aws_error.text
 	        	raise IOError("Bad Manifest: " + message)
 	        # Size is ??
 	        size = import_.find('size').text
