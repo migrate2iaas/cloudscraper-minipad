@@ -522,7 +522,7 @@ class Service(object):
 	        	message = "Unknown Error"
 	        	if aws_error:
 	        		message = aws_error.find('Message').text
-	        	raise RuntimeException("Bad Manifest " + message)
+	        	raise IOError("Bad Manifest " + message)
 	        # Size is ??
 	        size = import_.find('size').text
 	
