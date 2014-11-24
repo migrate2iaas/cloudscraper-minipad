@@ -520,7 +520,7 @@ class Service(object):
                         # should seek for AWS error here - it's mostly possible
 	        	aws_error = manifest.find('Message')
 	        	message = "Unknown Reason"
-	        	if aws_error:
+	        	if aws_error is not None:
 	        		message = aws_error.text
 	        	raise IOError("Bad Manifest: " + message)
 	        # Size is ??
