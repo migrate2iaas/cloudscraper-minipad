@@ -513,7 +513,16 @@ class Service(object):
 	
 	        manifest = etree.fromstring(xml)
 	        import_ = manifest.find('import')
-	
+	        if not import_ :
+                        # then it's kinda error
+	        	logging.error("!!!ERROR: Cannot get the manifest\n")
+	        	logging.debug(xml);
+                        # should seek for AWS error here - it's mostly possible
+	        	aws_error = manifest.find('Error')
+	        	message = "Unknown Error"
+	        	if aws_error:
+	        		message = aws_error.find('Message').text
+	        	raise RuntimeException("Bad Manifest " + message)
 	        # Size is ??
 	        size = import_.find('size').text
 	
