@@ -584,8 +584,8 @@ class Service(object):
 	            # write to appropriate volume
 	            handle.write(r.content)
                     # calculate percent downloaded
-	            self.statusMessage = 'Downloading '\
-                                         + str(int((float(self.bytesConverted)/float(size)))*100) + \
+                    self.statusMessage = 'Downloading '\
+                                         + str(int((float(self.bytesConverted)/float(size))*100)) + \
                                          "%";
 	
 	            self.bytesConverted += (end-start)
