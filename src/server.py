@@ -669,7 +669,7 @@ class Service(object):
                     logger.debug('name:%s size:%s' % (name, size))
 
                     # skip system drive
-                    if name == linux.Linux().getSystemDriveName():
+                    if ('/dev/' + name) == linux.Linux().getSystemDriveName():
                         continue
 
                     if int(size) >= int(self.volumeSize*1024*1024):
