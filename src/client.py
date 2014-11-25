@@ -3,11 +3,11 @@ import time
 from lxml import etree
 
 # need to get this from VM
-server_ip = '54.164.136.46'
+server_ip = '67.43.162.108'
 server_port = 80
 
 #manifesturl = 'https://s3.amazonaws.com/minipad/1312-28801ECA87-Cmanifest.xml'
-manifesturl = 'https://s3.amazonaws.com/minipad/25a1816b-4859-4d4b-9419-df9a6542d2a1/Minipad-disk1.vmdkmanifest.xml'
+manifesturl = 'http://cloudscraper-1415751373-eu-west-1.s3.amazonaws.com/AMAZON-03FC5688-Cmanifest.xml'
 
 def post(payload):
     url = "http://%s:%d/" % (server_ip, server_port)

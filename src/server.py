@@ -523,7 +523,7 @@ class Service(object):
 	        	if aws_error is not None:
 	        		message = aws_error.text
 	        	raise IOError("Bad Manifest: " + message)
-	        # Size is ??
+	        # Size is in bytes
 	        size = import_.find('size').text
 	
 	        # Volume is in GB
@@ -535,6 +535,8 @@ class Service(object):
 	
 	        # 2.2 Find a disk/volume in the system
 	        device = self.GetDisk()
+
+	        logging.info("Writing to device: " + device)
 	
 	        if device == '/dev/null':
 	            # no device found
@@ -575,9 +577,19 @@ class Service(object):
 	
 	            r = requests.get(get_url)
 	            logger.debug('Downloaded %d bytes (expected %d bytes)' % (len(r.content), end-start+1))
-	
+                    if not (r.status_code == 200):
+                        logger.error("Failed to download part")
+                        logger.debug(str(r.content))
+                        r.raise_for_status()
+                    if not (len(r.content) == end-start+1):
+                        logger.warning("! Content size mismatch. Data could be corrupt!")
+                        logger.debug(str(r.content))
 	            # write to appropriate volume
 	            handle.write(r.content)
+                    # calculate percent downloaded
+	            self.statusMessage = 'Downloading '\
+                                         + str(int((float(self.bytesConverted)/size))*100) + \
+                                         "%";
 	
 	            self.bytesConverted += (end-start+1)
 	
@@ -660,7 +672,7 @@ class Service(object):
                     logger.debug('name:%s size:%s' % (name, size))
 
                     # skip system drive
-                    if name == 'xvda':
+                    if name == linux.Linux().getSystemDriveName():
                         continue
 
                     if int(size) >= int(self.volumeSize*1024*1024):
