@@ -581,11 +581,14 @@ class Service(object):
                         logger.error("Failed to download part")
                         logger.debug(str(r.content))
                         r.raise_for_status()
+                    if not (len(r.content) == end-start+1):
+                        logger.warning("! Content size mismatch. Data could be corrupt!")
+                        logger.debug(str(r.content))
 	            # write to appropriate volume
 	            handle.write(r.content)
                     # calculate percent downloaded
 	            self.statusMessage = 'Downloading '\
-                                         + str(int((float(self.bytesConverted)/size))*100) + \
+                                         + str(int((float(self.bytesConverted)/float(size)))*100) + \
                                          "%";
 	
 	            self.bytesConverted += (end-start+1)
@@ -669,10 +672,10 @@ class Service(object):
                     logger.debug('name:%s size:%s' % (name, size))
 
                     # skip system drive
-                    if ('/dev/' + name) == linux.Linux().getSystemDriveName():
+                    if name == linux.Linux().getSystemDriveName():
                         continue
 
-                    if int(size) >= int(self.volumeSize*1024*1024):
+                    if int(size) >= int(self.volumeSize*1024*1024*1024):
                         device = '/dev/' + name
 
                         break
@@ -795,3 +798,6 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+
+#sudo sed -i -e 's/archive.ubuntu.com\|security.ubuntu.com/old-releases.ubuntu.com/g' /etc/apt/sources.list && sudo apt-get update && sudo apt-get -y install gcc python-dev libxml2-dev libxslt-dev git python-setuptools zlib1g-dev && sudo easy_install pip && sudo pip install lxml && sudo pip install shortuuid && sudo pip install psutil && git clone https://git.assembla.com/cloudscraper.minpad.git
