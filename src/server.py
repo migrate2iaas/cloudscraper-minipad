@@ -576,7 +576,7 @@ class Service(object):
 	            # to the found disk device (e.g. /dev/sdb)
 	
 	            r = requests.get(get_url)
-	            logger.debug('Downloaded %d bytes (expected %d bytes)' % (len(r.content), end-start+1))
+	            logger.debug('Downloaded %d bytes (expected %d bytes)' % (len(r.content), end-start))
                     if not (r.status_code == 200):
                         logger.error("Failed to download part")
                         logger.debug(str(r.content))
@@ -588,7 +588,7 @@ class Service(object):
                                          + str(int((float(self.bytesConverted)/float(size)))*100) + \
                                          "%";
 	
-	            self.bytesConverted += (end-start+1)
+	            self.bytesConverted += (end-start)
 	
 	        # Every part of conversion task should be logged, 
 	        # the current step and its status should be accessible via 
