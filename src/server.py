@@ -542,7 +542,7 @@ class Service(object):
 	            # no device found
 	            self.status = 'Error'
 	            self.statusMessage = 'No available device/volume found'
-	            self.statusCode = 'NoDevice'
+	            self.statusCode = '405'
 	
 	            return
 	
@@ -581,9 +581,6 @@ class Service(object):
                         logger.error("Failed to download part")
                         logger.debug(str(r.content))
                         r.raise_for_status()
-                    if not (len(r.content) == end-start+1):
-                        logger.warning("! Content size mismatch. Data could be corrupt!")
-                        logger.debug(str(r.content))
 	            # write to appropriate volume
 	            handle.write(r.content)
                     # calculate percent downloaded
