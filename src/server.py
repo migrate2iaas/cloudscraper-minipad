@@ -574,8 +574,22 @@ class Service(object):
 	
 	            # 2.3 For every part download it into memory and write 
 	            # to the found disk device (e.g. /dev/sdb)
-	
-	            r = requests.get(get_url)
+	            # TODO: move it to parms
+                    tries = 0
+                    retries = 5
+                    while True:
+                        try:
+                            tries = tries + 1
+                            r = requests.get(get_url)
+                            break
+                        except Exception as e:
+                            logger.warning("Download failed: " + str(e))
+                            logger.debug("Attempt " + str(tries) + " of " + str(retries) + " failed");
+                            if tries < retries:
+                                time.sleep(5)
+                                continue
+                            else:
+                                raise e
 	            logger.debug('Downloaded %d bytes (expected %d bytes)' % (len(r.content), end-start))
                     if not (r.status_code == 200):
                         logger.error("Failed to download part")
