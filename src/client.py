@@ -3,7 +3,7 @@ import time
 from lxml import etree
 
 # need to get this from VM
-server_ip = '67.43.162.108'
+server_ip = '67.43.162.99'
 server_port = 80
 
 #manifesturl = 'https://s3.amazonaws.com/minipad/1312-28801ECA87-Cmanifest.xml'

@@ -40,7 +40,7 @@ class Windows(object):
         
         return
 
-    def findDiskBySize(minsize):
+    def findDiskBySize(self, minsize):
         # get a list of all the possible block devices to consider
         device = "/dev/null"
         lsblk = subprocess.Popen(['wmic', 'diskdrive', 'list' , 'brief' ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
