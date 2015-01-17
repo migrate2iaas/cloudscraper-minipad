@@ -94,7 +94,7 @@ class Linux(object):
     def findDiskBySize(self, minsize):
         # get a list of all the possible block devices to consider
         device = '/dev/null'
-        lsblk = Popen(['lsblk', '-rb'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        lsblk = Popen(['lsblk', '-rb'], stdout=PIPE, stderr=STDOUT)
         for line in lsblk.stdout:
             if 'disk' in line:
                 parts = re.split(r'\s+', line.strip())

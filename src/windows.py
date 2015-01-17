@@ -43,7 +43,7 @@ class Windows(object):
     def findDiskBySize(self, minsize):
         # get a list of all the possible block devices to consider
         device = "/dev/null"
-        lsblk = Popen(['wmic', 'diskdrive', 'list' , 'brief' ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        lsblk = Popen(['wmic', 'diskdrive', 'list' , 'brief' ], stdout=PIPE, stderr=STDOUT)
         for line in lsblk.stdout:
             if 'PHYSICALDRIVE' in line:
                 logger.debug(line)
