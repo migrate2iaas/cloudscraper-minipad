@@ -47,7 +47,6 @@ class Windows(object):
         for line in lsblk.stdout:
             if 'PHYSICALDRIVE' in line:
                 logger.debug(line)
-                logger.debug('name:%s size:%s' % (name, size))
                 match = re.search("PHYSICALDRIVE[0-9]+" , line)
                 if match:
                     name = match.group()
@@ -57,6 +56,9 @@ class Windows(object):
 
                 match = re.search("[0-9][0-9][0-9][0-9]+" , line)
                 size = match.group()
+
+                logger.debug('name:%s size:%s' % (name, size))
+
 
                 # skip system drive
                 if name == self.getSystemDriveName():
