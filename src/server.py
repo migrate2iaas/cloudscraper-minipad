@@ -51,7 +51,10 @@ import windows
 logger = logging.getLogger('minipad')
 logger.setLevel(logging.DEBUG)
 # create file handler which logs even debug messages
-fh = logging.FileHandler('/var/log/minipad.log')
+logfilename = '/var/log/minipad.log'
+if os.name == 'nt':
+    logfilename = './minipad.log'
+fh = logging.FileHandler(logfilename)
 fh.setLevel(logging.DEBUG)
 # create console handler with a higher log level
 ch = logging.StreamHandler()
@@ -480,7 +483,6 @@ class Service(object):
         # TODO: select only a date range from the log file
 
         # compress log file
-        logfilename = '/var/log/minipad.log'
         out = tarfile.open('minipad.log.tar.gz', mode='w:gz')
         try:
             out.add(logfilename)
