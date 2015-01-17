@@ -46,6 +46,7 @@ import traceback
 
 
 import linux
+import windows
 
 logger = logging.getLogger('minipad')
 logger.setLevel(logging.DEBUG)
@@ -633,19 +634,20 @@ class Service(object):
         #2.2.1 If SameDriveMode was passed in ConfigureImport request, 
         # and ImportInstance command is being processed, partition the 
         # free space on the system drive
-
+        if os.name == 'nt':
+            host_instance = windows.Windows()
+        else:
+            host_instance = linux.Linux()
+        
         if self.SameDriveMode and self.ImportType == 'ImportInstance':
 
             # what drive is the root system on?
-            host_instance = linux.Linux()
 
             rootdev = host_instance.getSystemDriveName()
+            partition = host_instance.createPrimaryPartition(rootdev)
+            device = partition
 
-            # Do should we create a partition on this root device?
-            # (doesn't make system to overwrite the root filesystem)
-
-            # currently will fail
-            device = '/dev/null'
+            #TODO: set flag to skip part of disk data, should make it configurable
 
         else:
             # get list of all disks/volumes on system
@@ -664,37 +666,13 @@ class Service(object):
             xvdf 202:80 0 20G 0 disk 
             xvdf1 202:81 0 19.1G 0 part 
             """
-            device = '/dev/null'
+           
 
             logger.debug('Looking for disk of size %s' % (self.volumeSize*1024*1024))
+            device = host_instance.findDiskBySize(self.volumeSize*1024*1024*1024)
+            
 
-            # get a list of all the possible block devices to consider
-            lsblk = subprocess.Popen(['lsblk', '-rb'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-            for line in lsblk.stdout:
-                if 'disk' in line:
-                    parts = re.split(r'\s+', line.strip())
-                    name, majmin, rm, size, ro, devtype = parts[:6]
-                    if len(parts) > 6:
-                        mountpoint = parts[6]
-                    else:
-                        mountpoint = None
-
-                    logger.debug(line)
-                    logger.debug('name:%s size:%s' % (name, size))
-
-                    # skip system drive
-                    if name == linux.Linux().getSystemDriveName():
-                        continue
-
-                    if int(size) >= int(self.volumeSize*1024*1024*1024):
-                        device = '/dev/' + name
-
-                        break
-
-            returncode = lsblk.wait()
-
-            if returncode:
-                logger.error("Error with lsblk program.")
+            
 
 
         logger.debug("Using device " + device)

@@ -82,3 +82,41 @@ class Linux(object):
             #supper-floppy like disk then
             logger.info("There is no " + rootdrive + " device, treating " +  rootdev+ " as system disk")
             return rootdev
+
+    def createPrimaryPartition(self):
+        raise NotImplemented
+
+    def setDiskPrimary(self , disk):
+        # points bootloader to another drive
+        
+        return
+
+    def findDiskBySize(minsize):
+        # get a list of all the possible block devices to consider
+        device = '/dev/null'
+        lsblk = subprocess.Popen(['lsblk', '-rb'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        for line in lsblk.stdout:
+            if 'disk' in line:
+                parts = re.split(r'\s+', line.strip())
+                name, majmin, rm, size, ro, devtype = parts[:6]
+                if len(parts) > 6:
+                    mountpoint = parts[6]
+                else:
+                    mountpoint = None
+
+                logger.debug(line)
+                logger.debug('name:%s size:%s' % (name, size))
+
+                # skip system drive
+                if name == self.getSystemDriveName():
+                    continue
+
+                if long(size) >= long(minsize):
+                    device = '/dev/' + name
+                    break
+        returncode = lsblk.wait()
+
+        if returncode:
+            logger.error("Error with lsblk program.")
+
+        return device

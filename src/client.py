@@ -7,7 +7,7 @@ server_ip = '67.43.162.108'
 server_port = 80
 
 #manifesturl = 'https://s3.amazonaws.com/minipad/1312-28801ECA87-Cmanifest.xml'
-manifesturl = 'http://cloudscraper-1415751373-eu-west-1.s3.amazonaws.com/AMAZON-03FC5688-Cmanifest.xml'
+manifesturl = 'http://cloudscraper-1420955437-eu-west-1.s3.amazonaws.com/WIN-9RJUUDQ3A9F-Cmanifest.xml'
 
 def post(payload):
     url = "http://%s:%d/" % (server_ip, server_port)
