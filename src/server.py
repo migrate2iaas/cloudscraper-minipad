@@ -549,7 +549,7 @@ class Service(object):
 	
 	            return
 	
-	        handle = open(device, 'rb+')
+	        handle = open(device, 'r+b')
 	
 	        self.status = 'ReadyToTransfer'
 	        self.statusMessage = 'Downloading'
