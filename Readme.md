@@ -29,5 +29,30 @@ To install on Ubuntu:
 4. sudo pip install lxml
 5. sudo pip install shortuuid
 6. sudo pip install psutil
+7. git clone https://git.assembla.com/cloudscraper.minpad.git
 
-7. TODO: how to enavle initclt\upstart?
+
+8. TODO: how to enable initclt\upstart?
+alternatively: python ~/cloudscraper.minpad/src/server.py
+
+
+To install on Windows:
+1. Install https://www.python.org/ftp/python/2.7.8/python-2.7.8.msi (check "Add python.exe to path" when prompted) 
+2. Install Git https://github.com/msysgit/msysgit/releases/download/Git-1.9.5-preview20141217/Git-1.9.5-preview20141217.exe (Select use git from Windows command prompt)
+3. download https://bootstrap.pypa.io/get-pip.py
+4. python get-pip.py
+5. python -m pip install lxml
+6. python -m pip install shortuuid
+7. python -m pip install psutil
+8. python -m pip install requests
+9. cd c:\ && git clone https://git.assembla.com/cloudscraper.minpad.git
+To Run: 
+10. schtasks /create /F /tn "Minipad" /tr "%CD%\cloudscraper.minpad\start_server.cmd" /sc onstart /ru System
+11. schtasks /run /tn "Minipad" 
+(TODO: check logs place)
+12. Open port 
+netsh advfirewall firewall add rule name="Open HTTP port 80" dir=in action=allow protocol=TCP localport=80
+
+Notes (to boot from the same VM like on onApp):
+1.Windows would require to have bootmgr of newer version in order to boot
+2.The tcpip interface should be named "Local Area Network"
