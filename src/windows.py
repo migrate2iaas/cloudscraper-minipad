@@ -40,6 +40,22 @@ class Windows(object):
         
         return
 
+    def callBatch(self , batname):
+        cmd =  Popen(['cmd', '/C', batname ], stdout=PIPE, stderr=STDOUT)
+        logger.debug(cmd.stderr.read())
+        logger.debug(cmd.stdout.read())
+        returncode = cmd.wait()
+        return returncode
+
+    def postprocess(self):
+        #TOOD: add some specific parms
+        if self.callBatch('postprocess\\discover_new_drive.bat') <> 0 or \
+           self.callBatch('postprocess\\change_boot.bat') <> 0 or \
+           self.callBatch('postprocess\\set_ip.bat') <> 0:
+            
+            logger.error("Error postprocessing the instance image")
+            raise Exception("Cannot postprocess the image")
+
     def findDiskBySize(self, minsize):
         # get a list of all the possible block devices to consider
         device = "/dev/null"

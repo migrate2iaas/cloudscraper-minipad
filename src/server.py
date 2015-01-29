@@ -87,6 +87,14 @@ class Service(object):
         self.statusMessage = 'Service not configured'
         self.statusCode = '0'
 
+        #TODO: should get from config, hardcoded for onApp
+        self.postprocess = True
+
+        if os.name == 'nt':
+            self.hostInstance = windows.Windows()
+        else:
+            self.hostInstance = linux.Linux()
+
         self.restartEvent = threading.Event()
         self.workers = []
 
@@ -612,9 +620,15 @@ class Service(object):
 	        # DescribeConversionTasks command.
 	        handle.close()
 	
-	        self.status = 'FinishedTransfer'
+	        
 	        self.statusMessage = 'Downloaded'
 	        self.statusCode = '0'
+
+                if self.postprocess and self.ImportType == 'ImportInstance':
+                    self.statusMessage = 'Postprocessing'
+                    self.hostInstance.postprocess()
+
+	        self.status = 'FinishedTransfer'
 
         except Exception as e:	
                 self.status = "Error"
@@ -636,17 +650,13 @@ class Service(object):
         #2.2.1 If SameDriveMode was passed in ConfigureImport request, 
         # and ImportInstance command is being processed, partition the 
         # free space on the system drive
-        if os.name == 'nt':
-            host_instance = windows.Windows()
-        else:
-            host_instance = linux.Linux()
         
         if self.SameDriveMode and self.ImportType == 'ImportInstance':
 
             # what drive is the root system on?
 
-            rootdev = host_instance.getSystemDriveName()
-            partition = host_instance.createPrimaryPartition(rootdev)
+            rootdev = self.hostInstance.getSystemDriveName()
+            partition = self.hostInstance.createPrimaryPartition(rootdev)
             device = partition
 
             #TODO: set flag to skip part of disk data, should make it configurable
@@ -671,7 +681,7 @@ class Service(object):
            
 
             logger.debug('Looking for disk of size %s' % (self.volumeSize*1024*1024))
-            device = host_instance.findDiskBySize(self.volumeSize*1024*1024*1024)
+            device = self.hostInstance.findDiskBySize(self.volumeSize*1024*1024*1024)
             
 
             
