@@ -516,7 +516,7 @@ class Service(object):
 	        # XML contains list of URLs to image parts. 
 	        logger.debug('downloading manifest')
 	        
-	        url = self.ImportManifestUrl
+	        url = self.importManifestUrl
 	        logger.debug(url)
 	
 	        r = requests.get(url)
