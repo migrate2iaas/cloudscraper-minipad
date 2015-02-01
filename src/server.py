@@ -128,7 +128,7 @@ class Service(object):
         #  these should be updated by ImportInstance/ImportVolume
         self.format = '' # e.g. VMDK
         self.size = 0
-        self.importManifestUrl = ''
+        self.ImportManifestUrl = ''
         self.volumeSize = 0
 
         self.status = 'ReadyToTransfer'
@@ -416,8 +416,8 @@ class Service(object):
             size = etree.SubElement(image, 'size')
             size.text = str(self.size)
 
-            importManifestUrl = etree.SubElement(image, 'importManifest')
-            importManifestUrl.text = self.importManifestUrl
+            ImportManifestUrl = etree.SubElement(image, 'importManifest')
+            ImportManifestUrl.text = self.ImportManifestUrl
 
             volume = etree.SubElement(item, 'volume')
             size = etree.SubElement(volume, 'size')
@@ -516,7 +516,7 @@ class Service(object):
 	        # XML contains list of URLs to image parts. 
 	        logger.debug('downloading manifest')
 	        
-	        url = self.importManifestUrl
+	        url = self.ImportManifestUrl
 	        logger.debug(url)
 	
 	        r = requests.get(url)
