@@ -367,6 +367,8 @@ class Service(object):
         needed. Ignore other parms.
         """
         logger.debug('ImportVolume called')
+        self.ImportManifestUrl = kwargs['Image.ImportManifestUrl']
+        self.ImportType = 'ImportVolume'
 
         # launch thread to go import volume
         worker = threading.Thread(target=self.handle_import,
