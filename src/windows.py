@@ -42,9 +42,9 @@ class Windows(object):
 
     def callBatch(self , batname):
         cmd =  Popen(['cmd', '/C', batname ], stdout=PIPE, stderr=STDOUT)
+        returncode = cmd.wait()
         logger.debug(cmd.stderr.read())
         logger.debug(cmd.stdout.read())
-        returncode = cmd.wait()
         return returncode
 
     def postprocess(self):
