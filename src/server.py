@@ -628,7 +628,7 @@ class Service(object):
 
                 if self.postprocess and self.ImportType == 'ImportInstance':
                     self.statusMessage = 'Postprocessing'
-                    self.hostInstance.postprocess()
+                    self.hostInstance.postprocess(device)
 
 	        self.status = 'FinishedTransfer'
 

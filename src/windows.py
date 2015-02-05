@@ -40,7 +40,7 @@ class Windows(object):
         
         return
 
-    def callBatch(self , batname):
+    def callBatch(self , batname , environment = os.environ):
         cmd =  Popen(['cmd', '/C', batname ], stdout=PIPE, stderr=STDOUT)
         returncode = cmd.wait()
         if cmd.stdout:
@@ -48,12 +48,15 @@ class Windows(object):
         logger.debug(batname + " returned " + str(returncode))
         return returncode
 
-    def postprocess(self):
+    def postprocess(self , device):
         #TOOD: add some specific parms
+        env = os.environ.copy()
+        # set the disk number - the last digit of device (works for 10 disks only)
+        env['DISK_N'] = device[-1]
         curdir = os.path.dirname(os.path.realpath(__file__))
-        if self.callBatch(curdir+'\\postprocess\\discover_new_drive.bat') <> 0 or \
-           self.callBatch(curdir+'\\postprocess\\change_boot.bat') <> 0 or \
-           self.callBatch(curdir+'\\postprocess\\set_ip.bat') <> 0:
+        if self.callBatch(curdir+'\\postprocess\\discover_new_drive.bat' , env) <> 0 or \
+           self.callBatch(curdir+'\\postprocess\\change_boot.bat' , env) <> 0 or \
+           self.callBatch(curdir+'\\postprocess\\set_ip.bat' , env) <> 0:
             
             logger.error("Error postprocessing the instance image")
             raise Exception("Cannot postprocess the image")
