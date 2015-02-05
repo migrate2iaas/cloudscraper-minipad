@@ -45,13 +45,15 @@ class Windows(object):
         returncode = cmd.wait()
         if cmd.stdout:
             logger.debug(cmd.stdout.read())
+        logger.debug(batname + " returned " + str(returncode))
         return returncode
 
     def postprocess(self):
         #TOOD: add some specific parms
-        if self.callBatch('postprocess\\discover_new_drive.bat') <> 0 or \
-           self.callBatch('postprocess\\change_boot.bat') <> 0 or \
-           self.callBatch('postprocess\\set_ip.bat') <> 0:
+        curdir = os.path.dirname(os.path.realpath(__file__))
+        if self.callBatch(curdir+'\\postprocess\\discover_new_drive.bat') <> 0 or \
+           self.callBatch(curdir+'\\postprocess\\change_boot.bat') <> 0 or \
+           self.callBatch(curdir+'\\postprocess\\set_ip.bat') <> 0:
             
             logger.error("Error postprocessing the instance image")
             raise Exception("Cannot postprocess the image")
