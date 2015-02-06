@@ -1,3 +1,4 @@
+if "%DISK_N%"=="" set DISK_N=%1
 if "%DISK_N%"=="" set DISK_N=1
 
 echo rescan > rescan.txt

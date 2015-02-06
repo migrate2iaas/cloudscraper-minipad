@@ -41,7 +41,7 @@ class Windows(object):
         return
 
     def callBatch(self , batname , environment = os.environ):
-        cmd =  Popen(['cmd', '/C', batname ], stdout=PIPE, stderr=STDOUT)
+        cmd =  Popen(['cmd', '/C', batname ], stdout=PIPE, stderr=STDOUT, env=environment)
         returncode = cmd.wait()
         if cmd.stdout:
             logger.debug(cmd.stdout.read())
