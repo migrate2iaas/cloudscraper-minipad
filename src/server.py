@@ -603,7 +603,7 @@ class Service(object):
                                 continue
                             else:
                                 raise e
-	            logger.debug('Downloaded %d bytes (expected %d bytes)' % (len(r.content), end-start))
+	            logger.debug('Downloaded %d bytes (expected %d bytes) at offset %d' % (len(r.content), end-start, start))
                     if not (r.status_code == 200):
                         logger.error("Failed to download part")
                         logger.debug(str(r.content))
