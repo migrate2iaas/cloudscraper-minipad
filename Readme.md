@@ -22,7 +22,7 @@ log file is saved in
 --------------------------------
 To install on Ubuntu:
 
-0. (Only if the release is not latest) sudo sed -i -e 's/archive.ubuntu.com\|security.ubuntu.com/old-releases.ubuntu.com/g' /etc/apt/sources.list
+0. (Only if the release is not latest, 14.04) sudo sed -i -e 's/archive.ubuntu.com\|security.ubuntu.com/old-releases.ubuntu.com/g' /etc/apt/sources.list
 1. sudo apt-get update
 2. sudo apt-get -y install gcc python-dev libxml2-dev libxslt-dev git python-setuptools zlib1g-dev
 3. sudo easy_install pip
@@ -47,7 +47,7 @@ To install on Windows:
 8. python -m pip install requests
 9. cd c:\ && git clone https://git.assembla.com/cloudscraper.minpad.git
 To Run: 
-10. schtasks /create /F /tn "Minipad" /tr "%CD%\cloudscraper.minpad\start_server.cmd" /sc onstart /ru System
+10. schtasks /create /F /tn "Minipad" /tr "cmd /C %CD%\cloudscraper.minpad\start_server.cmd" /sc onstart /ru System
 11. schtasks /run /tn "Minipad" 
 (TODO: check logs place)
 12. Open port 
