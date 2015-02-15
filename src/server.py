@@ -521,7 +521,7 @@ class Service(object):
 	        url = self.ImportManifestUrl
 	        logger.debug(url)
 	
-	        r = requests.get(url)
+	        r = requests.get(url , verify=False)
 	        xml = r.content
 	
 	        manifest = etree.fromstring(xml)
@@ -593,7 +593,7 @@ class Service(object):
                     while True:
                         try:
                             tries = tries + 1
-                            r = requests.get(get_url)
+                            r = requests.get(get_url , verify=False)
                             break
                         except Exception as e:
                             logger.warning("Download failed: " + str(e))
