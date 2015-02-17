@@ -55,6 +55,9 @@ netsh advfirewall firewall add rule name="Open HTTP port 80" dir=in action=allow
 
 Notes (to boot from the same VM like on onApp):
 1.Windows would require to have bootmgr of newer version in order to boot
-2.The tcpip interface should be named "VirtualNetworkAdapter"
+2.The tcpip interface should be named "Local Area Network"
+3.To add Deployment Tools , install the latest ADK and copy <ADK install Path>\Assessment and Deployment Kit\Deployment Tools\ to C:\Deployment Tools\
+4.The tcpip interface should be named "VirtualNetworkAdapter"
 to rename exec
 netsh interface set interface name="Local Area Network" newname="VirtualNetworkAdapter"
+(at the moment it's renamed during postprocess set_ip.bat step)
