@@ -65,7 +65,10 @@ class Windows(object):
         # get a list of all the possible block devices to consider
         device = "/dev/null"
         lsblk = Popen(['wmic', 'diskdrive', 'list' , 'brief' ], stdout=PIPE, stderr=STDOUT)
+        logger.info("Looking for drive ofsize  " + str(minsize))
+        
         for line in lsblk.stdout:
+            logger.debug(line)
             if 'PHYSICALDRIVE' in line:
                 logger.debug(line)
                 match = re.search("PHYSICALDRIVE[0-9]+" , line)
@@ -74,13 +77,19 @@ class Windows(object):
                 else:
                     logger.debug("Bad line, skipping")
                     continue
-
+                
+                match = re.search("[0-9]" , line)
+                partitions = match.group()
+                                
                 match = re.search("[0-9][0-9][0-9][0-9]+" , line)
                 size = match.group()
 
-                logger.debug('name:%s size:%s' % (name, size))
-
-
+                logger.debug('name:%s size:%s partitions:%s' % (name, size, partitions))
+                # skipping drives having a partition
+                if int(partitions) > 0:
+                    logger.debug('Skipping disk with partitions')
+                    continue
+                
                 # skip system drive
                 if name == self.getSystemDriveName():
                     continue
