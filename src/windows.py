@@ -79,8 +79,8 @@ class Windows(object):
                     logger.debug("Bad line, skipping")
                     continue
                 
-                match = re.search("[0-9]" , line)
-                partitions = match.group()
+                match = re.search("\s[0-9]" , line)
+                partitions = match.group() [1:] #skipping the first whitespace
                                 
                 match = re.search("[0-9][0-9][0-9][0-9]+" , line)
                 size = match.group()
