@@ -61,3 +61,4 @@ Notes (to boot from the same VM like on onApp):
 to rename exec
 netsh interface set interface name="Local Area Network" newname="VirtualNetworkAdapter"
 (at the moment it's renamed during postprocess set_ip.bat step)
+
