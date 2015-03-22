@@ -55,4 +55,6 @@ netsh advfirewall firewall add rule name="Open HTTP port 80" dir=in action=allow
 
 Notes (to boot from the same VM like on onApp):
 1.Windows would require to have bootmgr of newer version in order to boot
-2.The tcpip interface should be named "Local Area Network"
+2.The tcpip interface should be named "VirtualNetworkAdapter"
+to rename exec
+netsh interface set interface name="Local Area Network" newname="VirtualNetworkAdapter"
