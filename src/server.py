@@ -88,7 +88,7 @@ class Service(object):
         self.statusCode = '0'
 
         #TODO: should get from config, hardcoded for onApp
-        self.postprocess = False
+        self.postprocess = True
 
         if os.name == 'nt':
             self.hostInstance = windows.Windows()
