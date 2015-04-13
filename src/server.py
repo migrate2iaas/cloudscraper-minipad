@@ -87,8 +87,9 @@ class Service(object):
         self.statusMessage = 'Service not configured'
         self.statusCode = '0'
 
-        #TODO: should get from config, hardcoded for onApp
-        self.postprocess = True
+        #TODO: should get from config,
+        # hardcoded for onApp
+        self.postprocess = True 
 
         if os.name == 'nt':
             self.hostInstance = windows.Windows()
