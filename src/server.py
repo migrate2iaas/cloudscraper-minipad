@@ -89,7 +89,7 @@ class Service(object):
 
         #TODO: should get from config,
         # hardcoded for onApp
-        self.postprocess = True 
+        self.postprocess = False 
 
         if os.name == 'nt':
             self.hostInstance = windows.Windows()
@@ -171,6 +171,7 @@ class Service(object):
     def ConfigureImport(self, 
                         SameDriveMode=None, 
                         UseBuiltInStorage=None,
+                        Postproccess=None,
                         **kwargs):
         """Configure the appliance"""
 
@@ -194,6 +195,11 @@ class Service(object):
             self.statusCode = Code.text
 
             return (code, response)
+
+        #Postprocess: if enable postprocess after ImportInstance is done
+        self.postprocess = False
+        if Postproccess == 'True':
+            self.postprocess = True
 
         # SameDriveMode 
         # Switch to deploy the image to the system disk.
@@ -437,7 +443,7 @@ class Service(object):
         return (200, response)
 
 
-    def FinalizeConversion(self, InjectDrivers = 'NoDrivers',
+    def FinalizeConversion(self, InjectDrivers = 'NoDrivers', ChangeBoot = "False",
                            **kwargs):
         """
         Finalizes conversion making sure the copied image will 
@@ -450,23 +456,41 @@ class Service(object):
             Default: NoDrivers
             Valid values: VMware|VirtIO|Xen|HyperV
 
+            MakeBoot
+                Whether to change the default boot from MiniPad OS to the imported one
+            Type: String
+            Default: False
+            Valid values: False|True
+
         Note: nothing should be done a stub for now.
+        !NOTE: Drivers are injected in handle_import in postprocess function
+        Here we just reset the boot options. 
         """
         
         logger.debug('FinalizeConversion called')
 
         # should probably throw an error if the conversion is still
         # in progress
+        self.Status = 'Finalizing'
 
-        # When FinalizeConversion is requested
-        self.Status = 'FinishedTransfer'
+        error = False
+        try:
+            if MakeBoot=="True":
+                self.hostInstance.setBootDisk()
+        except Exception as ex:
+            self.statusMessage = str(ex)
+            self.Status = 'FinalizationFailed'
+            self.statusCode = 500
+            error = True
+
+        if not error:
+            self.statusCode = 200
+            # When FinalizeConversion is complete.
+            self.Status = 'FinishedConversion'
 
         response = etree.Element('Response')
-
-        return (200, response)
-
-        # When FinalizeConversion is complete.
-        self.Status = 'FinishedConversion'
+        
+        return (self.statusCode, response)
 
     def GetImportTargetLogs(self, **kwargs):
         """
