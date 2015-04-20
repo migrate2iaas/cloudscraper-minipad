@@ -87,8 +87,6 @@ class Service(object):
         self.statusMessage = 'Service not configured'
         self.statusCode = '0'
 
-        #TODO: should get from config,
-        # hardcoded for onApp
         self.postprocess = False 
 
         if os.name == 'nt':
@@ -475,12 +473,13 @@ class Service(object):
 
         error = False
         try:
-            if MakeBoot=="True":
+            if ChangeBoot=="True":
                 self.hostInstance.setBootDisk()
         except Exception as ex:
             self.statusMessage = str(ex)
             self.Status = 'FinalizationFailed'
             self.statusCode = 500
+            logger.error("Failed to finalize: " + str(ex));
             error = True
 
         if not error:
