@@ -441,7 +441,7 @@ class Service(object):
         return (200, response)
 
 
-    def FinalizeConversion(self, InjectDrivers = 'NoDrivers', ChangeBoot = "False",
+    def FinalizeConversion(self, InjectDrivers = 'NoDrivers', MakeBoot = "False",
                            **kwargs):
         """
         Finalizes conversion making sure the copied image will 
@@ -473,7 +473,7 @@ class Service(object):
 
         error = False
         try:
-            if ChangeBoot=="True":
+            if MakeBoot=="True":
                 self.hostInstance.setBootDisk()
         except Exception as ex:
             self.statusMessage = str(ex)
