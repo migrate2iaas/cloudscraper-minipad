@@ -20,6 +20,7 @@ import filecmp
 import unittest
 import shutil
 import os
+import time
 
 import re
 from subprocess import *
@@ -27,6 +28,15 @@ from subprocess import *
 logger = logging.getLogger('minipad')
 
 class Linux(object):
+    UnknownFamily = 0
+    DebianFamily = 1
+    RedhatFamily = 2 
+    def __init__(self):
+        self.linux_family = Linux.DebianFamily
+        self.imported_sys_grub_path = "/boot/grub/grub.cfg"
+        self.presaved_imported_sys_grub_path = "/boot/grub/imported-grub.cfg"
+        self.local_grub_path = "/boot/grub/grub.conf"
+        
 
     def findDeviceForPath(self , path):
         p1 = Popen(["df" , path], stdout=PIPE)
@@ -107,6 +117,8 @@ class Linux(object):
                 logger.debug(line)
                 logger.debug('name:%s size:%s' % (name, size))
 
+                #todo: skip disks already fiiled
+
                 # skip system drive
                 if name == self.getSystemDriveName():
                     continue
@@ -120,3 +132,47 @@ class Linux(object):
             logger.error("Error with lsblk program.")
 
         return device
+
+    def getNetworkSettingsPath(self):
+      """Returns path to netowrk config"""
+      if self.linux_family == Linux.RedhatFamily:
+          return "/etc/sysconfig/network-scripts/ifcfg-eth0"
+      if self.linux_family == Linux.DebianFamily:
+          return "/etc/network/interfaces"
+      raise NotImplementedError
+
+    def setBootDisk(self):
+        #replaces this pad system grub by imported one
+        src = self.local_grub_path
+        dest = self.local_grub_path + ".backup"
+        shutil.copyfile(src,dest)
+        
+        src = self.presaved_imported_sys_grub_path
+        dest = self.local_grub_path
+        shutil.copyfile(src,dest)
+
+        
+
+    def postprocess(self, device):
+        # 0. mount the partition
+        dir_path = '/tmp/tempmount'+str(int(time.time()))
+        os.mkdir(dir_path)
+        if str(device[-1]).isdigit():
+            dev_path = device
+        else:
+            hdparm = Popen(['hdparm', '-z', device], stdout=PIPE, stderr=STDOUT)
+            dev_path = device + "1"
+        
+        mount = Popen( ['mount', dev_path, dir_path], stdout=PIPE, stderr=STDOUT)
+        # 1. copy network configs
+        network_cfg = self.getNetworkSettingsPath()
+        dest = dir_path+network_cfg
+        src = network_cfg
+        shutil.copyfile(src,dest)
+
+        # 2. save target system grub options locally
+        src = dir_path+self.imported_sys_grub_path
+        dest = self.presaved_imported_sys_grub_path
+        shutil.copyfile(src,dest)
+        
+        

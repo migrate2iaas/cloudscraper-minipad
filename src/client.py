@@ -1,6 +1,7 @@
 import requests
 import time
 from lxml import etree
+import sys
 
 # need to get this from VM
 server_ip = '67.43.162.100'
@@ -8,6 +9,7 @@ server_port = 80
 
 #manifesturl = 'https://s3.amazonaws.com/minipad/1312-28801ECA87-Cmanifest.xml'
 manifesturl = 'http://cloudscraper-xfernet-1.s3.amazonaws.com/ip-10-198-14-249-xvda1manifest.xml?AWSAccessKeyId=AKIAIY2X62QVIHOPEFEQ&Expires=1442219072&Signature=tyL9aPBXliODPbwJQvIoZCEBr8I%3D'
+
 
 def post(payload):
     url = "http://%s:%d/" % (server_ip, server_port)
@@ -26,6 +28,9 @@ def post(payload):
         print 'Log Received: saved as minipad.log.tar.gz'
 
         return None
+
+if len(sys.argv) > 1:
+	server_ip = sys.argv[1]
 
 # reset the service into its initial state
 payload = {'Action' : 'Restart'}
