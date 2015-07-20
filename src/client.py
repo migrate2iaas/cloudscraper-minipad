@@ -4,11 +4,14 @@ from lxml import etree
 import sys
 
 # need to get this from VM
-server_ip = '67.43.162.100'
+server_ip = '67.43.162.101'
 server_port = 80
 
 #manifesturl = 'https://s3.amazonaws.com/minipad/1312-28801ECA87-Cmanifest.xml'
 manifesturl = 'https://s3.amazonaws.com/cloudscraper-1436845841-us-east-1/static-ububtu14-sdamanifest.xml?AWSAccessKeyId=AKIAIY2X62QVIHOPEFEQ&Expires=1437642545&Signature=WNJwA9blDAn%2BNTSXTnm2TxJ5Vgo%3D'
+
+
+
 
 def post(payload):
     url = "http://%s:%d/" % (server_ip, server_port)

@@ -328,7 +328,7 @@ class Service(object):
         StatusMessage.text = self.statusMessage
 
         StatusCode = etree.SubElement(response, 'StatusCode')
-        StatusCode.text = self.statusCode
+        StatusCode.text = str(self.statusCode)
 
         return (200, response)
 
