@@ -9,6 +9,7 @@ echo \#description: cloudscraper minipad service >> ${NODEBAT}
 echo \#processname: cloudscraper-minipad >> ${NODEBAT}
 echo cd ${CURDIR} >> ${NODEBAT}
 echo Setting autoupdate
+echo "git reset --hard" >> ${NODEBAT}
 echo git pull >> ${NODEBAT}
 echo python ./src/server.py '&' >> ${NODEBAT}
 
