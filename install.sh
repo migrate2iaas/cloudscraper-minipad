@@ -7,8 +7,8 @@ echo "#!/bin/bash" > ${NODEBAT}
 echo \#chkconfig: 2345 95 20 >> ${NODEBAT}
 echo \#description: cloudscraper minipad service >> ${NODEBAT}
 echo \#processname: cloudscraper-minipad >> ${NODEBAT}
-echo "\# Default-Start:     3" >> ${NODEBAT}
-echo "\# Default-Stop:      0" >> ${NODEBAT}
+echo "# Default-Start:     3" >> ${NODEBAT}
+echo "# Default-Stop:      0" >> ${NODEBAT}
 echo cd ${CURDIR} >> ${NODEBAT}
 echo Setting autoupdate
 echo "git reset --hard" >> ${NODEBAT}
