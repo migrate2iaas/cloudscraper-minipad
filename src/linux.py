@@ -161,9 +161,13 @@ class Linux(object):
             dev_path = device
         else:
             hdparm = Popen(['hdparm', '-z', device], stdout=PIPE, stderr=STDOUT)
+            output = hdparm.communicate()[0]
+            logging.info(str(output))
             dev_path = device + "1"
         
         mount = Popen( ['mount', dev_path, dir_path], stdout=PIPE, stderr=STDOUT)
+        output = hdparm.communicate()[0]
+        logging.info(str(output))
         # 1. copy network configs
         network_cfg = self.getNetworkSettingsPath()
         dest = dir_path+network_cfg

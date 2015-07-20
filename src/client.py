@@ -4,11 +4,11 @@ from lxml import etree
 import sys
 
 # need to get this from VM
-server_ip = '31.171.248.246'
+server_ip = '67.43.162.100'
 server_port = 80
 
 #manifesturl = 'https://s3.amazonaws.com/minipad/1312-28801ECA87-Cmanifest.xml'
-manifesturl = 'https://d3-lax.dincloud.com/cloudscraper-test2/WIN-9RJUUDQ3A9F-Cmanifest.xml?AWSAccessKeyId=91T0O18P61POALLD3ZKE&Expires=1424620877&Signature=OIrbKRkz4XX9mPY%2FQQr7lkeYu%2B8%3D'
+manifesturl = 'https://s3.amazonaws.com/cloudscraper-1436845841-us-east-1/static-ububtu14-sdamanifest.xml?AWSAccessKeyId=AKIAIY2X62QVIHOPEFEQ&Expires=1437642545&Signature=WNJwA9blDAn%2BNTSXTnm2TxJ5Vgo%3D'
 
 def post(payload):
     url = "http://%s:%d/" % (server_ip, server_port)
@@ -39,6 +39,7 @@ post(payload)
 payload = {'Action' : 'ConfigureImport',
            'SameDriveMode' : 'False',
            'UseBuiltInStorage' : 'False',
+           'Postproccess' : 'True'
           }
 post(payload)
 

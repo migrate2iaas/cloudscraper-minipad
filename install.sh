@@ -3,7 +3,11 @@ echo Please run from clone-d git directory
 
 NODEBAT=./init.d.cloudscraper-minipad
 CURDIR="`pwd`"
-echo cd ${CURDIR} > ${NODEBAT}
+echo "#!/bin/bash" > ${NODEBAT}
+echo \#chkconfig: 2345 95 20 >> ${NODEBAT}
+echo \#description: cloudscraper minipad service >> ${NODEBAT}
+echo \#processname: cloudscraper-minipad >> ${NODEBAT}
+echo cd ${CURDIR} >> ${NODEBAT}
 echo Setting autoupdate
 echo git pull >> ${NODEBAT}
 echo python ./src/server.py '&' >> ${NODEBAT}
