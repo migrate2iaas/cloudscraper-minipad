@@ -5,6 +5,7 @@ NODEBAT=./init.d.cloudscraper-minipad
 CURDIR="`pwd`"
 echo cd ${CURDIR} > ${NODEBAT}
 echo Setting autoupdate
+echo "git reset --hard" >> ${NODEBAT}
 echo git pull >> ${NODEBAT}
 echo python ./src/server.py '&' >> ${NODEBAT}
 

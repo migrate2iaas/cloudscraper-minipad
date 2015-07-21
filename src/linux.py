@@ -35,7 +35,9 @@ class Linux(object):
         self.linux_family = Linux.DebianFamily
         self.imported_sys_grub_path = "/boot/grub/grub.cfg"
         self.presaved_imported_sys_grub_path = "/boot/grub/imported-grub.cfg"
-        self.local_grub_path = "/boot/grub/grub.conf"
+        self.local_grub_path = "/boot/grub/grub.cfg"
+        # we also change old grub settings if they are present
+        self.local_grub_legacy_path = "/boot/grub/grub.conf" 
         
 
     def findDeviceForPath(self , path):
@@ -142,14 +144,31 @@ class Linux(object):
       raise NotImplementedError
 
     def setBootDisk(self):
-        #replaces this pad system grub by imported one
+        #backup of current grub config
         src = self.local_grub_path
         dest = self.local_grub_path + ".backup"
+        #grub2 must be present
         shutil.copyfile(src,dest)
-        
+        #replaces this pad system grub by imported one
         src = self.presaved_imported_sys_grub_path
         dest = self.local_grub_path
         shutil.copyfile(src,dest)
+        #set grub1 if it's present to chainload grub2
+        if self.local_grub_legacy_path:
+            config = "default 0\n\
+            timeout 3\n\
+            hiddenmenu\n\n\n\
+            title Chainload grub2\n\
+            rootnoverify (hd0,0)\n\
+            chainloader +1\n\
+            boot\n"
+            #backup of existing grub config
+            src = self.local_grub_legacy_path
+            dest = self.local_grub_legacy_path + ".backup"
+            #grub2 must be present
+            shutil.copyfile(src,dest)
+            with open(self.local_grub_legacy_path, "w") as f:
+                f.write(config)
 
         
 
@@ -161,9 +180,13 @@ class Linux(object):
             dev_path = device
         else:
             hdparm = Popen(['hdparm', '-z', device], stdout=PIPE, stderr=STDOUT)
+            output = hdparm.communicate()[0]
+            logging.info(str(output))
             dev_path = device + "1"
         
         mount = Popen( ['mount', dev_path, dir_path], stdout=PIPE, stderr=STDOUT)
+        output = mount.communicate()[0]
+        logging.info(str(output))
         # 1. copy network configs
         network_cfg = self.getNetworkSettingsPath()
         dest = dir_path+network_cfg
