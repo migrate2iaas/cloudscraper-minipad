@@ -21,6 +21,8 @@ import unittest
 import shutil
 import os
 import time
+import sys
+import stat
 
 import re
 from subprocess import *
@@ -148,13 +150,14 @@ class Linux(object):
         src = self.local_grub_path
         dest = self.local_grub_path + ".backup"
         #grub2 must be present
-        shutil.copyfile(src,dest)
+        if os.path.exists(self.local_grub_path):
+            shutil.copyfile(src,dest)
         #replaces this pad system grub by imported one
         src = self.presaved_imported_sys_grub_path
         dest = self.local_grub_path
         shutil.copyfile(src,dest)
         #set grub1 if it's present to chainload grub2
-        if self.local_grub_legacy_path:
+        if os.path.exists(self.local_grub_legacy_path):
             config = "default 0\n\
             timeout 3\n\
             hiddenmenu\n\n\n\
@@ -167,6 +170,7 @@ class Linux(object):
             dest = self.local_grub_legacy_path + ".backup"
             #grub2 must be present
             shutil.copyfile(src,dest)
+            os.chmod(self.local_grub_legacy_path, stat.S_IWRITE + stat.S_IREAD )
             with open(self.local_grub_legacy_path, "w") as f:
                 f.write(config)
 
