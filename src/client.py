@@ -38,6 +38,7 @@ post(payload)
 
 # configure instance
 payload = {'Action' : 'ConfigureImport',
+           'Postprocess' : 'True',
            'SameDriveMode' : 'False',
            'UseBuiltInStorage' : 'False',
           }
