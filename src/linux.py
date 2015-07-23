@@ -159,7 +159,7 @@ class Linux(object):
             timeout 3\n\
             hiddenmenu\n\n\n\
             title Chainload grub2\n\
-            rootnoverify (hd0,0)\n\
+            rootnoverify (hd0)\n\
             chainloader +1\n\
             boot\n"
             #backup of existing grub config
