@@ -179,7 +179,7 @@ class Linux(object):
     def postprocess(self, device):
         # 0. mount the partition
         dir_path = '/tmp/tempmount'+str(int(time.time()))
-        os.mkdir(dir_path)
+        os.makedirs(dir_path)
         if str(device[-1]).isdigit():
             dev_path = device
         else:
