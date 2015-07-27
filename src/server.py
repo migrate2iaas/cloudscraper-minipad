@@ -645,31 +645,29 @@ class Service(object):
 	        # the current step and its status should be accessible via 
 	        # DescribeConversionTasks command.
 	        handle.close()
-	
-	        
 	        self.statusMessage = 'Downloaded'
 	        self.statusCode = '0'
-	    except Exception as e:	
-                self.status = "Error"
-                self.statusMessage = "Error while downloading: " + str(e)
-                self.statusCode = '500'
-                logger.error("!!!ERROR: Exception while downloading: " + str(e) + "")
-                logger.error(traceback.format_exc())
-                return
+        except Exception as e:	
+            self.status = "Error"
+            self.statusMessage = "Error while downloading: " + str(e)
+            self.statusCode = '500'
+            logger.error("!!!ERROR: Exception while downloading: " + str(e) + "")
+            logger.error(traceback.format_exc())
+            return
 
-            try:
-                if self.postprocess and self.ImportType == 'ImportInstance':
-                    self.statusMessage = 'Postprocessing'
-                    self.hostInstance.postprocess(device)
+        try:
+            if self.postprocess and self.ImportType == 'ImportInstance':
+                self.statusMessage = 'Postprocessing'
+                self.hostInstance.postprocess(device)
 
-	        self.status = 'FinishedTransfer'
-	    except Exception as e:
-                self.status = "Error"
-                self.statusMessage = "Error while postprocessing: " + str(e)
-                self.statusCode = '500'
-                logger.error("!!!ERROR: Exception while downloading: " + str(e) + "")
-                logger.error(traceback.format_exc())
-                return
+	    self.status = 'FinishedTransfer'
+	except Exception as e:
+            self.status = "Error"
+            self.statusMessage = "Error while postprocessing: " + str(e)
+            self.statusCode = '500'
+            logger.error("!!!ERROR: Exception while downloading: " + str(e) + "")
+            logger.error(traceback.format_exc())
+            return
 
 
         
