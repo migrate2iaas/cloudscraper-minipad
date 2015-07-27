@@ -177,6 +177,13 @@ class Linux(object):
         
 
     def postprocess(self, device):
+        #-1: install grub
+        logging.info("Installing GRUB2")
+        root_dev = self.getSystemDriveName()
+        grub = Popen(['grub-install', root_dev], stdout=PIPE, stderr=STDOUT)
+        output = grub.communicate()[0]
+
+        
         # 0. mount the partition
         dir_path = '/tmp/tempmount'+str(int(time.time()))
         os.makedirs(dir_path)
