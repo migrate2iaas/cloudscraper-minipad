@@ -27,7 +27,7 @@ import stat
 import re
 from subprocess import *
 
-logger = logger.getLogger('minipad')
+logger = logging.getLogger('minipad')
 
 class Linux(object):
     UnknownFamily = 0
