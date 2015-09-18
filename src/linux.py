@@ -12,7 +12,7 @@ __author__ = "Vladimir Fedorov"
 __copyright__ = "Copyright (C) 2013 Migrate2Iaas"
 #---------------------------------------------------------
 
-import logging
+import logger
 import traceback
 
 
@@ -27,7 +27,7 @@ import stat
 import re
 from subprocess import *
 
-logger = logging.getLogger('minipad')
+logger = logger.getLogger('minipad')
 
 class Linux(object):
     UnknownFamily = 0
@@ -178,11 +178,11 @@ class Linux(object):
 
     def postprocess(self, device):
         #-1: install grub
-        logging.info("Installing GRUB2")
+        logger.info("Installing GRUB2")
         root_dev = self.getSystemDriveName()
         grub = Popen(['grub-install', root_dev], stdout=PIPE, stderr=STDOUT)
         output = grub.communicate()[0]
-
+	logger.debug(str(output))
         
         # 0. mount the partition
         dir_path = '/tmp/tempmount'+str(int(time.time()))
@@ -192,12 +192,12 @@ class Linux(object):
         else:
             hdparm = Popen(['hdparm', '-z', device], stdout=PIPE, stderr=STDOUT)
             output = hdparm.communicate()[0]
-            logging.info(str(output))
+            logger.info(str(output))
             dev_path = device + "1"
         
         mount = Popen( ['mount', dev_path, dir_path], stdout=PIPE, stderr=STDOUT)
         output = mount.communicate()[0]
-        logging.info(str(output))
+        logger.info(str(output))
         # 1. copy network configs
         network_cfg = self.getNetworkSettingsPath()
         dest = dir_path+network_cfg
