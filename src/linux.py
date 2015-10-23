@@ -23,6 +23,7 @@ import os
 import time
 import sys
 import stat
+import socket, struct
 
 import re
 from subprocess import *
@@ -174,7 +175,45 @@ class Linux(object):
             with open(self.local_grub_legacy_path, "w") as f:
                 f.write(config)
 
-        
+
+    def setNetworkSettings(self):
+        network_cfg = self.getNetworkSettingsPath()
+        dest = dir_path+network_cfg
+        # check if configs are present there - we have same OS type there
+        if os.path.exists(dest):
+            logger.info("Applying Ubuntu network settings")
+            src = network_cfg
+            shutil.copyfile(src,dest)
+        else:
+            # the easiest way is to read ifconfig then
+            logger.info("Applying RHEL network settings")
+            device = "eth0"
+            ipconf = Popen(['ip', '-f', 'inet', 'addr', 'show', device], stdout=PIPE, stderr=STDOUT)
+            output = ipconf.communicate()[0]
+            match = re.search("inet ([0-9.]+)/([0-9]+)",  output , re.MULTILINE )
+            if not match:
+                logger.error("Failed to find ip data in the command output: " + output)
+            static_ip = match.group(1)
+            mask_length = int(match.group(2))
+            mask_bits = (1<<32) - (1<<32>>mask_length)
+            mask = socket.inet_ntoa(struct.pack(">L", mask_bits))
+            ipconf = Popen(['ip', '-f inet', 'route', 'list'], stdout=PIPE, stderr=STDOUT)
+            output = ipconf.communicate()[0]
+            match = re.search("default via ([0-9.]+)",  output , re.MULTILINE )
+            if not match:
+                logger.error("Failed to find ip data in the command output: " + output)
+            gateway = match.group(0)
+            
+            #write config to default location for CentOS and RHEL
+            retval = "DEVICE="+device+"\n"
+            if static_ip:
+              retval = retval + "BOOTPROTO=static\nDHCPCLASS=\nIPADDR="+static_ip+"\nNETMASK="+mask"\nGATEWAY="+gateway+"\n" # not sure of gateway
+            dest = dir_path+"/etc/sysconfig/network-scripts/ifcfg-eth0"
+            with open(dest , "w") as f:
+                f.write(retval)
+            
+
+            
 
     def postprocess(self, device):
         #-1: install grub
@@ -199,10 +238,7 @@ class Linux(object):
         output = mount.communicate()[0]
         logger.info(str(output))
         # 1. copy network configs
-        network_cfg = self.getNetworkSettingsPath()
-        dest = dir_path+network_cfg
-        src = network_cfg
-        shutil.copyfile(src,dest)
+        self.setNetworkSettings();
 
         # 2. save target system grub options locally
         src = dir_path+self.imported_sys_grub_path
