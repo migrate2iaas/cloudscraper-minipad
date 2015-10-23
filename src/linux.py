@@ -37,6 +37,7 @@ class Linux(object):
     def __init__(self):
         self.linux_family = Linux.DebianFamily
         self.imported_sys_grub_path = "/boot/grub/grub.cfg"
+        self.imported_sys_grub2_path = "/boot/grub2/grub.cfg"
         self.presaved_imported_sys_grub_path = "/boot/grub/imported-grub.cfg"
         self.local_grub_path = "/boot/grub/grub.cfg"
         # we also change old grub settings if they are present
@@ -241,7 +242,10 @@ class Linux(object):
         self.setNetworkSettings();
 
         # 2. save target system grub options locally
-        src = dir_path+self.imported_sys_grub_path
+        grub_path = self.imported_sys_grub_path
+        if os.path.exists(dir_path+self.imported_sys_grub2_path):
+            grub_path = self.imported_sys_grub2_path
+        src = dir_path+grub_path
         dest = self.presaved_imported_sys_grub_path
         shutil.copyfile(src,dest)
         
