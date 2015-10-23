@@ -177,7 +177,7 @@ class Linux(object):
                 f.write(config)
 
 
-    def setNetworkSettings(self):
+    def setNetworkSettings(self , dir_path):
         network_cfg = self.getNetworkSettingsPath()
         dest = dir_path+network_cfg
         # check if configs are present there - we have same OS type there
@@ -239,7 +239,7 @@ class Linux(object):
         output = mount.communicate()[0]
         logger.info(str(output))
         # 1. copy network configs
-        self.setNetworkSettings();
+        self.setNetworkSettings(dir_path);
 
         # 2. save target system grub options locally
         grub_path = self.imported_sys_grub_path
