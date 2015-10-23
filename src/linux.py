@@ -208,7 +208,7 @@ class Linux(object):
             #write config to default location for CentOS and RHEL
             retval = "DEVICE="+device+"\n"
             if static_ip:
-              retval = retval + "BOOTPROTO=static\nDHCPCLASS=\nIPADDR="+static_ip+"\nNETMASK="+mask"\nGATEWAY="+gateway+"\n" # not sure of gateway
+              retval = retval + "BOOTPROTO=static\nDHCPCLASS=\nIPADDR="+static_ip+"\nNETMASK="+mask+"\nGATEWAY="+gateway+"\n" # not sure of gateway
             dest = dir_path+"/etc/sysconfig/network-scripts/ifcfg-eth0"
             with open(dest , "w") as f:
                 f.write(retval)
