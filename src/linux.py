@@ -194,15 +194,17 @@ class Linux(object):
             match = re.search("inet ([0-9.]+)/([0-9]+)",  output , re.MULTILINE )
             if not match:
                 logger.error("Failed to find ip data in the command output: " + output)
+                raise LookupError("Failed to find ip data")
             static_ip = match.group(1)
             mask_length = int(match.group(2))
             mask_bits = (1<<32) - (1<<32>>mask_length)
             mask = socket.inet_ntoa(struct.pack(">L", mask_bits))
-            ipconf = Popen(['ip', '-f inet', 'route', 'list'], stdout=PIPE, stderr=STDOUT)
+            ipconf = Popen(['ip', '-f' , 'inet', 'route', 'list'], stdout=PIPE, stderr=STDOUT)
             output = ipconf.communicate()[0]
             match = re.search("default via ([0-9.]+)",  output , re.MULTILINE )
             if not match:
                 logger.error("Failed to find ip data in the command output: " + output)
+                raise LookupError("Failed to find ip route data")
             gateway = match.group(0)
             
             #write config to default location for CentOS and RHEL
