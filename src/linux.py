@@ -205,7 +205,7 @@ class Linux(object):
             if not match:
                 logger.error("Failed to find ip data in the command output: " + output)
                 raise LookupError("Failed to find ip route data")
-            gateway = match.group(0)
+            gateway = match.group(1)
             
             #write config to default location for CentOS and RHEL
             retval = "DEVICE="+device+"\n"
