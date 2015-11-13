@@ -1,0 +1,2 @@
+"C:\Deployment Tools\amd64\DISM\dism.exe" /Image:X: /Add-Driver:X:\Xen\x86\xeniface.inf /ForceUnsigned
+"C:\Deployment Tools\amd64\DISM\dism.exe" /Image:X: /Add-Driver:X:\Xen\x86\xenvbd.inf /ForceUnsigned

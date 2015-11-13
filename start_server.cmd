@@ -2,10 +2,10 @@ cd /d "%~dp0"
 
 
 git fetch origin
-git reset --hard origin/642_onapp_release
+git reset --hard origin/908_xen
 #git clean -f -d
-git pull origin 642_onapp_release
-git checkout origin/642_onapp_release
+git pull origin 908_xen
+git checkout origin/908_xen
 
 WHERE python
 IF %ERRORLEVEL% NEQ 0 set PATH=%PATH%;C:\Python27\
