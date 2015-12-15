@@ -55,7 +55,7 @@ class Windows(object):
         diskn = device[-1]
         curdir = os.path.dirname(os.path.realpath(__file__))
         if self.callBatch(curdir+'\\postprocess\\discover_new_drive.bat ' + str(diskn)) <> 0 or \
-           self.callBatch(curdir+'\\postprocess\\add_virtio.bat') <> 0 or \
+           self.callBatch(curdir+'\\postprocess\\add_xen.bat') <> 0 or \
            self.callBatch(curdir+'\\postprocess\\set_ip.bat') <> 0:
             logger.error("Error postprocessing the instance image")
             raise Exception("Cannot postprocess the image")
