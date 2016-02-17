@@ -4,11 +4,11 @@ from lxml import etree
 import sys
 
 # need to get this from VM
-server_ip = '37.209.208.171'
+server_ip = '54.206.20.166'
 server_port = 80
 
 
-manifesturl = 'http://migrate2iaas.s3-ap-southeast-2.amazonaws.com/HP001-Cmanifest.xml'
+manifesturl = 'http://twftemp.s3.amazonaws.com/sbsnewTWFSBS-Cmanifest.xml'
 
 
 

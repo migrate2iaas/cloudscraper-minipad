@@ -38,6 +38,8 @@ class Linux(object):
         self.linux_family = Linux.DebianFamily
         self.imported_sys_grub_path = "/boot/grub/grub.cfg"
         self.imported_sys_grub2_path = "/boot/grub2/grub.cfg"
+        self.imported_sys_legacy_grub_path = "/boot/grub/grub.conf"
+        self.imported_legacy_grub = False
         self.presaved_imported_sys_grub_path = "/boot/grub/imported-grub.cfg"
         self.local_grub_path = "/boot/grub/grub.cfg"
         # we also change old grub settings if they are present
@@ -159,7 +161,10 @@ class Linux(object):
         dest = self.local_grub_path
         shutil.copyfile(src,dest)
         #set grub1 if it's present to chainload grub2
-        if os.path.exists(self.local_grub_legacy_path):
+        if self.imported_legacy_grub:
+            # copy grub1 config directly if the imported system runs grub1
+            shutil.copyfile(src,self.local_grub_legacy_path)
+        elif os.path.exists(self.local_grub_legacy_path):
             config = "default 0\n\
             timeout 3\n\
             hiddenmenu\n\n\n\
@@ -247,6 +252,9 @@ class Linux(object):
         grub_path = self.imported_sys_grub_path
         if os.path.exists(dir_path+self.imported_sys_grub2_path):
             grub_path = self.imported_sys_grub2_path
+        if not os.path.exists(dir_path+grub_path):
+            grub_path = self.imported_sys_legacy_grub_path
+            self.imported_legacy_grub = True
         src = dir_path+grub_path
         dest = self.presaved_imported_sys_grub_path
         shutil.copyfile(src,dest)
