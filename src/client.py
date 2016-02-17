@@ -9,6 +9,8 @@ server_port = 80
 
 
 manifesturl = 'https://cloudscraper-4d.s3-eu-west-1.amazonaws.com/ip-10-0-0-170-xvdamanifest.xml?Signature=e%2BXoVD%2BnikyiIO7k2nMi59IOuPs%3D&Expires=1442882306&AWSAccessKeyId=AKIAIY2X62QVIHOPEFEQ'
+server_ip = '54.206.20.166'
+server_port = 80
 
 
 
