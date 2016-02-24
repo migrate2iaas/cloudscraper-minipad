@@ -153,7 +153,7 @@ class Linux(object):
         """patches imported legacy grub"""
         with open(conf_file_path, "r") as f:
             data = f.read()
-            data = data.replace("hd0" , "hd1")
+            data = data.replace("hd0,1" , "hd1,0")
         with open(conf_file_path, "w") as f:
             f.write(data)
 
