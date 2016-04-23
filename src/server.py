@@ -816,6 +816,7 @@ def main():
     
     if parser.parse_args().download:
         parm = {"Image.ImportManifestUrl" : parser.parse_args().download}
+        service.configure_import()
         service.ImportVolume(**parm)
         return
     
