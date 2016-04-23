@@ -808,8 +808,8 @@ def main():
     # check if we run in non-server mode
     parser = ThrowingArgumentParser(description
         ="This utility performs importing data from AWS S3 - compatible storage")
-    parser.add_argument('-d', '--download' , "Imports data via manifest xml link specified")
-    parser.add_argument('-o', '--output' , "Output file (or disk)")
+    parser.add_argument('-d', '--download' , help="Imports data via manifest xml link specified")
+    parser.add_argument('-o', '--output' , help="Output file (or disk)")
 
     if parser.parse_args().output:
         service.targetDeviceOverride=parser.parse_args().output
