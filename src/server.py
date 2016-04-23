@@ -59,7 +59,7 @@ fh = logging.FileHandler(logfilename)
 fh.setLevel(logging.DEBUG)
 # create console handler with a higher log level
 ch = logging.StreamHandler()
-ch.setLevel(logging.DEBUG)
+ch.setLevel(logging.INFO)
 # create formatter and add it to the handlers
 formatter = logging.Formatter('[%(asctime)s] (%(threadName)-10s) %(message)s',)
 fh.setFormatter(formatter)
@@ -551,6 +551,7 @@ class Service(object):
 	        # 2.2 Find a disk/volume in the system
 	        if self.targetDeviceOverride:
                     device = self.targetDeviceOverride
+                    open(device, 'a').close() # just touch the file
                 else:
                     device = self.GetDisk()
 
@@ -621,6 +622,7 @@ class Service(object):
                                          "%";
 	
 	            self.bytesConverted += (end-start)
+	            logger.info("Bytes converted: " + self.bytesConverted)
 	
 	        # Every part of conversion task should be logged, 
 	        # the current step and its status should be accessible via 
