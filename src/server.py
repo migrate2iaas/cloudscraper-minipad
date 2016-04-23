@@ -43,6 +43,7 @@ import psutil # for detecting disk usage
 import os
 import subprocess
 import traceback
+import argparse
 
 
 import linux
@@ -86,6 +87,7 @@ class Service(object):
         self.status = 'NotConfigured'
         self.statusMessage = 'Service not configured'
         self.statusCode = '0'
+        self.targetDeviceOverride = "" 
 
         #TODO: should get from config, hardcoded for onApp
         self.postprocess = False
@@ -547,7 +549,10 @@ class Service(object):
 	        count = parts.get('count')
 	
 	        # 2.2 Find a disk/volume in the system
-	        device = self.GetDisk()
+	        if self.targetDeviceOverride:
+                    device = self.targetDeviceOverride
+                else:
+                    device = self.GetDisk()
 
 	        logging.info("Writing to device: " + device)
 	
@@ -792,8 +797,28 @@ class Handler(BaseHTTPRequestHandler):
      No auth (v1)
 """
 
+class ArgumentParserError(Exception): pass
+
+class ThrowingArgumentParser(argparse.ArgumentParser):
+    def error(self, message):
+        raise ArgumentParserError(message)
+
 def main():
 
+    # check if we run in non-server mode
+    parser = ThrowingArgumentParser(description
+        ="This utility performs importing data from AWS S3 - compatible storage")
+    parser.add_argument('-d', '--download' , "Imports data via manifest xml link specified")
+    parser.add_argument('-o', '--output' , "Output file (or disk)")
+
+    if parser.parse_args().output:
+        service.targetDeviceOverride=parser.parse_args().output
+    
+    if parser.parse_args().download:
+        parm = {"Image.ImportManifestUrl" : parser.parse_args().download}
+        service.ImportVolume(**parm)
+        return
+    
     from BaseHTTPServer import HTTPServer
     server = HTTPServer(('0.0.0.0', 80), Handler)
     print 'Starting server, use <Ctrl-C> to stop'
