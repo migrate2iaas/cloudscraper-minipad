@@ -621,7 +621,7 @@ class Service(object):
                                          "%";
 	
 	            self.bytesConverted += (end-start)
-	            logger.info("Bytes converted: " + self.bytesConverted)
+	            logger.info("Bytes converted: " + str(self.bytesConverted))
 	
 	        # Every part of conversion task should be logged, 
 	        # the current step and its status should be accessible via 
