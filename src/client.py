@@ -4,7 +4,7 @@ from lxml import etree
 import sys
 
 # need to get this from VM
-server_ip = '31.171.248.246'
+server_ip = '72.34.251.15'
 server_port = 80
 
 #manifesturl = 'https://s3.amazonaws.com/minipad/1312-28801ECA87-Cmanifest.xml'
