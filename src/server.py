@@ -633,6 +633,7 @@ class Service(object):
                         logger.debug(str(r.content))
                         r.raise_for_status()
 	            # write to appropriate volume
+	            handle.seek(start)
 	            handle.write(r.content)
                     # calculate percent downloaded
                     self.statusMessage = 'Downloading '\
