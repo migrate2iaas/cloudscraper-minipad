@@ -39,7 +39,7 @@ import shortuuid
 import cgi
 import re
 import threading
-import psutil # for detecting disk usage
+#import psutil # for detecting disk usage
 import os
 import subprocess
 import traceback
@@ -735,6 +735,7 @@ class Handler(BaseHTTPRequestHandler):
     
     def do_GET(self):
 	self.send_response(200)
+	self.send_header('Content-type', 'plain/text')
 	self.end_headers()
 	self.wfile.write("Cloudscraper minipad target")
 	logger.debug('unsupported GET recieved')
