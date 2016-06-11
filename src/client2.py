@@ -37,8 +37,8 @@ if len(sys.argv) > 1:
 	server_ip = sys.argv[1]
 
 # reset the service into its initial state
-payload = {'Action' : 'Restart'}
-post(payload)
+#payload = {'Action' : 'Restart'}
+#post(payload)
 
 # configure instance
 payload = {'Action' : 'ConfigureImport',
@@ -47,7 +47,7 @@ payload = {'Action' : 'ConfigureImport',
            'UseBuiltInStorage' : 'False',
            'Postproccess' : 'True'
           }
-post(payload)
+#post(payload)
 
 # wait for ConfigurInstance
 time.sleep(2)

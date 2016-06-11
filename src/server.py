@@ -734,6 +734,9 @@ class Handler(BaseHTTPRequestHandler):
     """Call method of Service() based on Action field in POST"""
     
     def do_GET(self):
+	self.send_response(200)
+	self.end_headers()
+	self.wfile.write("Cloudscraper minipad target")
 	logger.debug('unsupported GET recieved')
 
     def do_POST(self):
