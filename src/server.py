@@ -735,7 +735,7 @@ class Handler(BaseHTTPRequestHandler):
     
     def do_GET(self):
 	self.send_response(200)
-	self.send_header('Content-type', 'plain/text')
+	self.send_header('Content-type', 'text/html')
 	self.end_headers()
 	self.wfile.write("Cloudscraper minipad target ready")
 	logger.debug('unsupported GET recieved')
