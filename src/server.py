@@ -87,6 +87,7 @@ class Service(object):
         self.statusMessage = 'Service not configured'
         self.statusCode = '0'
         self.targetDeviceOverride = "" 
+        self.SameDriveMode = False
 
         #TODO: should get from config, hardcoded for onApp
         self.postprocess = False
