@@ -8,6 +8,7 @@ RUN easy_install pip
 RUN pip install lxml
 RUN pip install shortuuid
 RUN pip install psutil
+RUN pip install requests
 RUN git clone https://git.assembla.com/cloudscraper.minpad.git
 
 # Dockerfile to be applied to standard Ubuntu docker image
