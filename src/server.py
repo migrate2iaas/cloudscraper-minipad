@@ -89,9 +89,7 @@ class Service(object):
         self.targetDeviceOverride = "" 
         self.SameDriveMode = False
 
-        #TODO: should get from config, hardcoded for onApp
-        self.postprocess = False
-
+        self.postprocess = False 
         if os.name == 'nt':
             self.hostInstance = windows.Windows()
         else:
@@ -172,6 +170,7 @@ class Service(object):
     def ConfigureImport(self, 
                         SameDriveMode=None, 
                         UseBuiltInStorage=None,
+                        Postproccess=None,
                         **kwargs):
         """Configure the appliance"""
 
@@ -195,6 +194,11 @@ class Service(object):
             self.statusCode = Code.text
 
             return (code, response)
+
+        #Postprocess: if enable postprocess after ImportInstance is done
+        self.postprocess = False
+        if Postproccess == 'True':
+            self.postprocess = True
 
         # SameDriveMode 
         # Switch to deploy the image to the system disk.
@@ -325,7 +329,7 @@ class Service(object):
         StatusMessage.text = self.statusMessage
 
         StatusCode = etree.SubElement(response, 'StatusCode')
-        StatusCode.text = self.statusCode
+        StatusCode.text = str(self.statusCode)
 
         return (200, response)
 
@@ -438,7 +442,7 @@ class Service(object):
         return (200, response)
 
 
-    def FinalizeConversion(self, InjectDrivers = 'NoDrivers',
+    def FinalizeConversion(self, InjectDrivers = 'NoDrivers', MakeBoot = "False",
                            **kwargs):
         """
         Finalizes conversion making sure the copied image will 
@@ -451,23 +455,42 @@ class Service(object):
             Default: NoDrivers
             Valid values: VMware|VirtIO|Xen|HyperV
 
+            MakeBoot
+                Whether to change the default boot from MiniPad OS to the imported one
+            Type: String
+            Default: False
+            Valid values: False|True
+
         Note: nothing should be done a stub for now.
+        !NOTE: Drivers are injected in handle_import in postprocess function
+        Here we just reset the boot options. 
         """
         
         logger.debug('FinalizeConversion called')
 
         # should probably throw an error if the conversion is still
         # in progress
+        self.Status = 'Finalizing'
 
-        # When FinalizeConversion is requested
-        self.Status = 'FinishedTransfer'
+        error = False
+        try:
+            if MakeBoot=="True":
+                self.hostInstance.setBootDisk()
+        except Exception as ex:
+            self.statusMessage = str(ex)
+            self.Status = 'FinalizationFailed'
+            self.statusCode = 500
+            logger.error("Failed to finalize: " + str(ex));
+            error = True
+
+        if not error:
+            self.statusCode = 200
+            # When FinalizeConversion is complete.
+            self.Status = 'FinishedConversion'
 
         response = etree.Element('Response')
-
-        return (200, response)
-
-        # When FinalizeConversion is complete.
-        self.Status = 'FinishedConversion'
+        
+        return (self.statusCode, response)
 
     def GetImportTargetLogs(self, **kwargs):
         """
@@ -615,6 +638,7 @@ class Service(object):
                         logger.debug(str(r.content))
                         r.raise_for_status()
 	            # write to appropriate volume
+	            handle.seek(start)
 	            handle.write(r.content)
                     # calculate percent downloaded
                     self.statusMessage = 'Downloading '\
@@ -628,23 +652,32 @@ class Service(object):
 	        # the current step and its status should be accessible via 
 	        # DescribeConversionTasks command.
 	        handle.close()
-	
-	        
 	        self.statusMessage = 'Downloaded'
 	        self.statusCode = '0'
-
-                if self.postprocess and self.ImportType == 'ImportInstance':
-                    self.statusMessage = 'Postprocessing'
-                    self.hostInstance.postprocess(device)
-
-	        self.status = 'FinishedTransfer'
-
         except Exception as e:	
-                self.status = "Error"
-                self.statusMessage = "Error while downloading: " + str(e)
-                self.statusCode = '500'
-                logger.error("!!!ERROR: Exception while downloading: " + str(e) + "")
-                logger.error(traceback.format_exc())
+            self.status = "Error"
+            self.statusMessage = "Error while downloading: " + str(e)
+            self.statusCode = '500'
+            logger.error("!!!ERROR: Exception while downloading: " + str(e) + "")
+            logger.error(traceback.format_exc())
+            return
+
+        try:
+            if self.postprocess and self.ImportType == 'ImportInstance':
+                self.statusMessage = 'Postprocessing'
+                self.hostInstance.postprocess(device)
+
+	    self.status = 'FinishedTransfer'
+	except Exception as e:
+            self.status = "Error"
+            self.statusMessage = "Error while postprocessing: " + str(e)
+            self.statusCode = '500'
+            logger.error("!!!ERROR: Exception while downloading: " + str(e) + "")
+            logger.error(traceback.format_exc())
+            return
+
+
+        
 
     def GetDisk(self):
         """
@@ -707,6 +740,10 @@ class Handler(BaseHTTPRequestHandler):
     """Call method of Service() based on Action field in POST"""
     
     def do_GET(self):
+	self.send_response(200)
+	self.send_header('Content-type', 'text/html')
+	self.end_headers()
+	self.wfile.write("Cloudscraper minipad target ready")
 	logger.debug('unsupported GET recieved')
 
     def do_POST(self):

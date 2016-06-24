@@ -48,19 +48,27 @@ class Windows(object):
         logger.debug(batname + " returned " + str(returncode))
         return returncode
 
-    def postprocess(self , device):
+    def postprocess(self , device, change_boot = False):
         #TOOD: add some specific parms
         
         # set the disk number - the last digit of device (works for 10 disks only)
         diskn = device[-1]
         curdir = os.path.dirname(os.path.realpath(__file__))
         if self.callBatch(curdir+'\\postprocess\\discover_new_drive.bat ' + str(diskn)) <> 0 or \
-           self.callBatch(curdir+'\\postprocess\\change_boot.bat') <> 0 or \
            self.callBatch(curdir+'\\postprocess\\add_virtio.bat') <> 0 or \
            self.callBatch(curdir+'\\postprocess\\set_ip.bat') <> 0:
-            
             logger.error("Error postprocessing the instance image")
             raise Exception("Cannot postprocess the image")
+        if change_boot:
+            self.setBootDisk()
+                
+
+    def setBootDisk(self , drive='X'):
+        """sets the drive to boot from, param is not really passed, it's hardcoded in batch"""
+        curdir = os.path.dirname(os.path.realpath(__file__))
+        if self.callBatch(curdir+'\\postprocess\\change_boot.bat') <> 0:
+                logger.error("Error postprocessing the instance image")
+                raise Exception("Cannot set boot")
 
     def findDiskBySize(self, minsize):
         # get a list of all the possible block devices to consider

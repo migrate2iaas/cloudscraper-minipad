@@ -20,6 +20,10 @@ import filecmp
 import unittest
 import shutil
 import os
+import time
+import sys
+import stat
+import socket, struct
 
 import re
 from subprocess import *
@@ -27,6 +31,20 @@ from subprocess import *
 logger = logging.getLogger('minipad')
 
 class Linux(object):
+    UnknownFamily = 0
+    DebianFamily = 1
+    RedhatFamily = 2 
+    def __init__(self):
+        self.linux_family = Linux.DebianFamily
+        self.imported_sys_grub_path = "/boot/grub/grub.cfg"
+        self.imported_sys_grub2_path = "/boot/grub2/grub.cfg"
+        self.imported_sys_legacy_grub_path = "/boot/grub/grub.conf"
+        self.imported_legacy_grub = False
+        self.presaved_imported_sys_grub_path = "/boot/grub/imported-grub.cfg"
+        self.local_grub_path = "/boot/grub/grub.cfg"
+        # we also change old grub settings if they are present
+        self.local_grub_legacy_path = "/boot/grub/grub.conf" 
+        
 
     def findDeviceForPath(self , path):
         p1 = Popen(["df" , path], stdout=PIPE)
@@ -107,6 +125,8 @@ class Linux(object):
                 logger.debug(line)
                 logger.debug('name:%s size:%s' % (name, size))
 
+                #todo: skip disks already fiiled
+
                 # skip system drive
                 if name == self.getSystemDriveName():
                     continue
@@ -120,3 +140,133 @@ class Linux(object):
             logger.error("Error with lsblk program.")
 
         return device
+
+    def getNetworkSettingsPath(self):
+      """Returns path to netowrk config"""
+      if self.linux_family == Linux.RedhatFamily:
+          return "/etc/sysconfig/network-scripts/ifcfg-eth0"
+      if self.linux_family == Linux.DebianFamily:
+          return "/etc/network/interfaces"
+      raise NotImplementedError
+
+    def patchImportedLegacyGrub(self, conf_file_path):
+        """patches imported legacy grub"""
+        with open(conf_file_path, "r") as f:
+            data = f.read()
+            data = data.replace("hd0" , "hd1")
+        with open(conf_file_path, "w") as f:
+            f.write(data)
+
+    def setBootDisk(self):
+        #backup of current grub config
+        src = self.local_grub_path
+        dest = self.local_grub_path + ".backup"
+        #grub2 must be present
+        if os.path.exists(self.local_grub_path):
+            shutil.copyfile(src,dest)
+
+        src = self.presaved_imported_sys_grub_path
+        #set grub1 if it's present to chainload grub2
+        if self.imported_legacy_grub:
+            # copy grub1 config directly if the imported system runs grub1
+            shutil.copyfile(src,self.local_grub_legacy_path)
+            self.patchImportedLegacyGrub(self.local_grub_legacy_path)
+        elif os.path.exists(self.local_grub_legacy_path):
+            #replaces this pad system grub by imported one
+            dest = self.local_grub_path
+            shutil.copyfile(src,dest)
+            config = "default 0\n\
+            timeout 3\n\
+            hiddenmenu\n\n\n\
+            title Chainload grub2\n\
+            rootnoverify (hd0)\n\
+            chainloader +1\n\
+            boot\n"
+            #backup of existing grub config
+            src = self.local_grub_legacy_path
+            dest = self.local_grub_legacy_path + ".backup"
+            #grub2 must be present
+            shutil.copyfile(src,dest)
+            os.chmod(self.local_grub_legacy_path, stat.S_IWRITE + stat.S_IREAD )
+            with open(self.local_grub_legacy_path, "w") as f:
+                f.write(config)
+
+
+    def setNetworkSettings(self , dir_path):
+        network_cfg = self.getNetworkSettingsPath()
+        dest = dir_path+network_cfg
+        # check if configs are present there - we have same OS type there
+        if os.path.exists(dest):
+            logger.info("Applying Ubuntu network settings")
+            src = network_cfg
+            shutil.copyfile(src,dest)
+        else:
+            # the easiest way is to read ifconfig then
+            logger.info("Applying RHEL network settings")
+            device = "eth0"
+            ipconf = Popen(['ip', '-f', 'inet', 'addr', 'show', device], stdout=PIPE, stderr=STDOUT)
+            output = ipconf.communicate()[0]
+            match = re.search("inet ([0-9.]+)/([0-9]+)",  output , re.MULTILINE )
+            if not match:
+                logger.error("Failed to find ip data in the command output: " + output)
+                raise LookupError("Failed to find ip data")
+            static_ip = match.group(1)
+            mask_length = int(match.group(2))
+            mask_bits = (1<<32) - (1<<32>>mask_length)
+            mask = socket.inet_ntoa(struct.pack(">L", mask_bits))
+            ipconf = Popen(['ip', '-f' , 'inet', 'route', 'list'], stdout=PIPE, stderr=STDOUT)
+            output = ipconf.communicate()[0]
+            match = re.search("default via ([0-9.]+)",  output , re.MULTILINE )
+            if not match:
+                logger.error("Failed to find ip data in the command output: " + output)
+                raise LookupError("Failed to find ip route data")
+            gateway = match.group(1)
+            
+            #write config to default location for CentOS and RHEL
+            retval = "DEVICE="+device+"\n"
+            if static_ip:
+              retval = retval + "BOOTPROTO=static\nDHCPCLASS=\nIPADDR="+static_ip+"\nNETMASK="+mask+"\nGATEWAY="+gateway+"\n" # not sure of gateway
+            dest = dir_path+"/etc/sysconfig/network-scripts/ifcfg-eth0"
+            with open(dest , "w") as f:
+                f.write(retval)
+            
+
+            
+
+    def postprocess(self, device):
+        #-1: install grub
+        logger.info("Installing GRUB2")
+        root_dev = self.getSystemDriveName()
+        grub = Popen(['grub-install', root_dev], stdout=PIPE, stderr=STDOUT)
+        output = grub.communicate()[0]
+	logger.debug(str(output))
+        
+        # 0. mount the partition
+        dir_path = '/tmp/tempmount'+str(int(time.time()))
+        os.makedirs(dir_path)
+        if str(device[-1]).isdigit():
+            dev_path = device
+        else:
+            hdparm = Popen(['hdparm', '-z', device], stdout=PIPE, stderr=STDOUT)
+            output = hdparm.communicate()[0]
+            logger.info(str(output))
+            dev_path = device + "1"
+        
+        mount = Popen( ['mount', dev_path, dir_path], stdout=PIPE, stderr=STDOUT)
+        output = mount.communicate()[0]
+        logger.info(str(output))
+        # 1. copy network configs
+        self.setNetworkSettings(dir_path);
+
+        # 2. save target system grub options locally
+        grub_path = self.imported_sys_grub_path
+        if os.path.exists(dir_path+self.imported_sys_grub2_path):
+            grub_path = self.imported_sys_grub2_path
+        if not os.path.exists(dir_path+grub_path):
+            grub_path = self.imported_sys_legacy_grub_path
+            self.imported_legacy_grub = True
+        src = dir_path+grub_path
+        dest = self.presaved_imported_sys_grub_path
+        shutil.copyfile(src,dest)
+        
+        
