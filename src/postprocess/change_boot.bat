@@ -15,6 +15,7 @@ goto END
 bcdedit /create {NTLDR} /d "Migrated legacy OS"
 bcdedit /set {NTLDR} device partition=X:
 bcdedit /set {NTLDR} path \NTLDR
+bcdedit /displayorder {NTLDR} /addlast
 bcdedit /default {NTLDR}
 
 :END
