@@ -17,5 +17,7 @@ bcdedit /set {NTLDR} device partition=X:
 bcdedit /set {NTLDR} path \NTLDR
 bcdedit /displayorder {NTLDR} /addlast
 bcdedit /default {NTLDR}
+xcopy X:\ntdetect.com C:\ /H
+xcopy X:\boot.ini C:\ /H
 
 :END
