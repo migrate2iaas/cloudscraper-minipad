@@ -22,5 +22,7 @@ bcdedit /default {NTLDR}
 xcopy X:\ntdetect.com C:\ /H
 xcopy X:\ntldr C:\ /H
 xcopy "%~dp0"\sample_boot.ini C:\boot.ini /H
+rem create a desktop icon for all users
+xcopy "%~dp0"\setup_network.bat "X:\Documents and Settings\All Users\" 
 
 :END
