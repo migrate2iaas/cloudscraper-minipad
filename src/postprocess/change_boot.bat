@@ -20,6 +20,7 @@ bcdedit /set {NTLDR} path \NTLDR
 bcdedit /displayorder {NTLDR} /addlast
 bcdedit /default {NTLDR}
 xcopy X:\ntdetect.com C:\ /H
-xcopy X:\boot.ini C:\ /H
+xcopy X:\ntldr C:\ /H
+xcopy "%~dp0"\sample_boot.ini C:\boot.ini /H
 
 :END
