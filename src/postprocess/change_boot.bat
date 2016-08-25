@@ -21,8 +21,8 @@ bcdedit /displayorder {NTLDR} /addlast
 bcdedit /default {NTLDR}
 xcopy /Y X:\ntdetect.com C:\ /H
 xcopy /Y X:\ntldr C:\ /H
-xcopy /Y "%~dp0"sample_boot.ini C:\boot.ini /H
+copy /Y "%~dp0"sample_boot.ini C:\boot.ini 
 rem create a desktop icon for all users
-xcopy /Y "%~dp0"setup_network.bat "X:\Documents and Settings\All Users\" 
+copy /Y "%~dp0"setup_network.bat "X:\Documents and Settings\All Users\" 
 
 :END
