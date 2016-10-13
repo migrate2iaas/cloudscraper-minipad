@@ -5,6 +5,7 @@ import sys
 
 # need to get this from VM
 server_ip = '54.206.20.166'
+
 server_port = 80
 
 

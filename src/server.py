@@ -39,11 +39,11 @@ import shortuuid
 import cgi
 import re
 import threading
-#import psutil # for detecting disk usage
 import os
 import subprocess
 import traceback
 import urlparse
+import argparse
 
 
 import linux
@@ -59,7 +59,7 @@ fh = logging.FileHandler(logfilename)
 fh.setLevel(logging.DEBUG)
 # create console handler with a higher log level
 ch = logging.StreamHandler()
-ch.setLevel(logging.DEBUG)
+ch.setLevel(logging.INFO)
 # create formatter and add it to the handlers
 formatter = logging.Formatter('[%(asctime)s] (%(threadName)-10s) %(message)s',)
 fh.setFormatter(formatter)
@@ -87,9 +87,10 @@ class Service(object):
         self.status = 'NotConfigured'
         self.statusMessage = 'Service not configured'
         self.statusCode = '0'
+        self.targetDeviceOverride = "" 
+        self.SameDriveMode = False
 
         self.postprocess = False 
-
         if os.name == 'nt':
             self.hostInstance = windows.Windows()
         else:
@@ -583,7 +584,11 @@ class Service(object):
 	        count = parts.get('count')
 	
 	        # 2.2 Find a disk/volume in the system
-	        device = self.GetDisk()
+	        if self.targetDeviceOverride:
+                    device = self.targetDeviceOverride
+                    open(device, 'a').close() # just touch the file
+                else:
+                    device = self.GetDisk()
 
 	        logging.info("Writing to device: " + device)
 	
@@ -657,6 +662,7 @@ class Service(object):
                                          "%";
 	
 	            self.bytesConverted += (end-start)
+	            logger.info("Bytes converted: " + str(self.bytesConverted))
 	
 	        # Every part of conversion task should be logged, 
 	        # the current step and its status should be accessible via 
@@ -846,8 +852,29 @@ class Handler(BaseHTTPRequestHandler):
      No auth (v1)
 """
 
+class ArgumentParserError(Exception): pass
+
+class ThrowingArgumentParser(argparse.ArgumentParser):
+    def error(self, message):
+        raise ArgumentParserError(message)
+
 def main():
 
+    # check if we run in non-server mode
+    parser = ThrowingArgumentParser(description
+        ="This utility performs importing data from AWS S3 - compatible storage")
+    parser.add_argument('-d', '--download' , help="Imports data via manifest xml link specified")
+    parser.add_argument('-o', '--output' , help="Output file (or disk)")
+
+    if parser.parse_args().output:
+        service.targetDeviceOverride=parser.parse_args().output
+    
+    if parser.parse_args().download:
+        parm = {"Image.ImportManifestUrl" : parser.parse_args().download}
+        service.configure_import()
+        service.ImportVolume(**parm)
+        return
+    
     from BaseHTTPServer import HTTPServer
     server = HTTPServer(('0.0.0.0', 80), Handler)
     print 'Starting server, use <Ctrl-C> to stop'

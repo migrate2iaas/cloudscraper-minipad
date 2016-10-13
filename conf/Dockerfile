@@ -16,6 +16,5 @@ RUN git clone https://git.assembla.com/cloudscraper.minpad.git
 
 
 # downloading the latest agent script
-ENTRYPOINT python ./cloudscraper.minpad/src/server.py
-
+ENTRYPOINT ["python", "./cloudscraper.minpad/src/server.py"]
 
