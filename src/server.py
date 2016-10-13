@@ -618,7 +618,7 @@ class Service(object):
 
 	            if self.IgnoreLinkParams:
                         url_parts = urlparse.urlparse(get_url)
-                        get_url = urlparse.urlunparse([url_parts.scheme , url_parts.netloc , url_parts.path])
+                        get_url = urlparse.urlunparse([url_parts.scheme , url_parts.netloc , url_parts.path, "" , "" , ""])
 	
 	            """
 	            Every image part should be read and then written to 
