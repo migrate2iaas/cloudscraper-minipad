@@ -43,6 +43,7 @@ import threading
 import os
 import subprocess
 import traceback
+import urlparse
 
 
 import linux
@@ -95,6 +96,7 @@ class Service(object):
             self.hostInstance = linux.Linux()
 
         self.SameDriveMode = False
+        self.IgnoreLinkParams = False
 
         self.restartEvent = threading.Event()
         self.workers = []
@@ -172,6 +174,7 @@ class Service(object):
                         SameDriveMode=None, 
                         UseBuiltInStorage=None,
                         Postproccess=None,
+                        IgnoreLinkParams=None,
                         **kwargs):
         """Configure the appliance"""
 
@@ -222,6 +225,13 @@ class Service(object):
             self.statusCode = Code.text
 
             return (code, response)
+
+        # IgnoreLinkParams
+        # Switch to ignore link parameters in XML files (may help for expired links of public objects)
+        if IgnoreLinkParams == 'True':
+            self.IgnoreLinkParams = True
+        else:
+            self.IgnoreLinkParams = False
 
         #UseBuiltInStorage 
         # Switch to use build-in eucalyptus-cloud storage.
@@ -605,6 +615,11 @@ class Service(object):
 	            end = int(byte_range.get('end'))
 	            key = part.find('key').text
 	            get_url = part.find('get-url').text
+
+	            if self.IgnoreLinkParams:
+                        url_parts = urlparse.urlparse(get_url)
+                        url_parts.query = url_parts.fragment = url_parts.param = ""
+                        get_url = urlparse.urlunparse(url_parts)
 	
 	            """
 	            Every image part should be read and then written to 
