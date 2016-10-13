@@ -149,6 +149,14 @@ class Linux(object):
           return "/etc/network/interfaces"
       raise NotImplementedError
 
+    def patchImportedLegacyGrub(self, conf_file_path):
+        """patches imported legacy grub"""
+        with open(conf_file_path, "r") as f:
+            data = f.read()
+            data = data.replace("hd0" , "hd1")
+        with open(conf_file_path, "w") as f:
+            f.write(data)
+
     def setBootDisk(self):
         #backup of current grub config
         src = self.local_grub_path
@@ -156,15 +164,16 @@ class Linux(object):
         #grub2 must be present
         if os.path.exists(self.local_grub_path):
             shutil.copyfile(src,dest)
-        #replaces this pad system grub by imported one
+
         src = self.presaved_imported_sys_grub_path
-        dest = self.local_grub_path
-        shutil.copyfile(src,dest)
         #set grub1 if it's present to chainload grub2
         if self.imported_legacy_grub:
             # copy grub1 config directly if the imported system runs grub1
-            shutil.copyfile(src,self.local_grub_legacy_path)
+            self.patchImportedLegacyGrub(self.local_grub_legacy_path)
         elif os.path.exists(self.local_grub_legacy_path):
+            #replaces this pad system grub by imported one
+            dest = self.local_grub_path
+            shutil.copyfile(src,dest)
             config = "default 0\n\
             timeout 3\n\
             hiddenmenu\n\n\n\

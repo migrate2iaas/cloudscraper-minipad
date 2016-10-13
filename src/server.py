@@ -39,7 +39,7 @@ import shortuuid
 import cgi
 import re
 import threading
-import psutil # for detecting disk usage
+#import psutil # for detecting disk usage
 import os
 import subprocess
 import traceback
@@ -633,6 +633,7 @@ class Service(object):
                         logger.debug(str(r.content))
                         r.raise_for_status()
 	            # write to appropriate volume
+	            handle.seek(start)
 	            handle.write(r.content)
                     # calculate percent downloaded
                     self.statusMessage = 'Downloading '\
@@ -733,6 +734,10 @@ class Handler(BaseHTTPRequestHandler):
     """Call method of Service() based on Action field in POST"""
     
     def do_GET(self):
+	self.send_response(200)
+	self.send_header('Content-type', 'text/html')
+	self.end_headers()
+	self.wfile.write("Cloudscraper minipad target ready")
 	logger.debug('unsupported GET recieved')
 
     def do_POST(self):

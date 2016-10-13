@@ -4,7 +4,7 @@ from lxml import etree
 import sys
 
 # need to get this from VM
-server_ip = '54.206.20.166'
+server_ip = '37.209.208.186'
 server_port = 80
 
 
@@ -37,8 +37,8 @@ if len(sys.argv) > 1:
 	server_ip = sys.argv[1]
 
 # reset the service into its initial state
-payload = {'Action' : 'Restart'}
-post(payload)
+#payload = {'Action' : 'Restart'}
+#post(payload)
 
 # configure instance
 payload = {'Action' : 'ConfigureImport',
@@ -47,7 +47,7 @@ payload = {'Action' : 'ConfigureImport',
            'UseBuiltInStorage' : 'False',
            'Postproccess' : 'True'
           }
-post(payload)
+#post(payload)
 
 # wait for ConfigurInstance
 time.sleep(2)
