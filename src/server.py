@@ -94,6 +94,8 @@ class Service(object):
         else:
             self.hostInstance = linux.Linux()
 
+        self.SameDriveMode = False
+
         self.restartEvent = threading.Event()
         self.workers = []
 
